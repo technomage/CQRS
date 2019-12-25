@@ -48,7 +48,7 @@ class LogSubscription<S> : Subscription where S : Subscriber, S.Input == Event {
 }
 
 @available(iOS 13.0, *)
-public class EventLog : Subscriber, Publisher {
+open class EventLog : Subscriber, Publisher {
   public typealias Output = Event
   public typealias Input = Event?
   public typealias Failure = Never

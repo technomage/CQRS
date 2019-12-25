@@ -12,7 +12,7 @@ import Combine
 public typealias FilterClosure = (Event) -> Bool
 
 @available(iOS 13.0, *)
-public class ObjectAggregator<E : Codable, R : Hashable&Codable> : Subscriber, Identifiable, Aggregator, ObservableObject {
+open class ObjectAggregator<E : Codable, R : Hashable&Codable> : Subscriber, Identifiable, Aggregator, ObservableObject {
   public typealias Input = Event
   public typealias Failure = Never
   

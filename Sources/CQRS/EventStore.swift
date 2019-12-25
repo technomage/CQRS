@@ -13,7 +13,7 @@ public protocol Aggregator {
 }
 
 @available(iOS 13.0, *)
-public class EventStore : ObservableObject {
+open class EventStore : ObservableObject {
   var seq : Int = 0
   @Published var event : Event? = nil
   var log : EventLog
@@ -48,7 +48,7 @@ public class EventStore : ObservableObject {
 }
 
 @available(iOS 13.0, *)
-public class UndoableEventStore : EventStore {
+open class UndoableEventStore : EventStore {
   var undo : UndoManager?
   
   override func append(_ event : Event) {

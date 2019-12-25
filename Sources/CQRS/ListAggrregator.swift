@@ -18,7 +18,7 @@ public protocol NamedListEntry : ListEntry {
 }
 
 @available(iOS 13.0, *)
-public class ListAggregator<E : ListEntry, R : Hashable&Codable> : Subscriber, ObservableObject, Aggregator {
+open class ListAggregator<E : ListEntry, R : Hashable&Codable> : Subscriber, ObservableObject, Aggregator {
   public typealias Input = ListChange<E,R>
   public typealias Failure = Never
   public typealias LE = ListChange<E,R>
