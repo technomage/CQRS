@@ -15,8 +15,8 @@ public protocol Aggregator {
 @available(iOS 13.0, *)
 open class EventStore : ObservableObject {
   var seq : Int = 0
-  @Published var event : Event? = nil
-  var log : EventLog
+  @Published public var event : Event? = nil
+  public var log : EventLog
   
   public init() {
     let l = EventLog()
