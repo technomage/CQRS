@@ -12,7 +12,7 @@ public struct KeyPathTracker {
   static var keyPathToKey = [AnyKeyPath : String]()
   static var keyToKeyPath = [String : AnyKeyPath]()
   
-  static func registerKeyPath(path: AnyKeyPath, key: String) {
+  public static func registerKeyPath(path: AnyKeyPath, key: String) {
     KeyPathTracker.keyPathToKey[path] = key
     KeyPathTracker.keyToKeyPath[key] = path
   }
