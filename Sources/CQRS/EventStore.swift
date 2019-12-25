@@ -49,7 +49,7 @@ open class EventStore : ObservableObject {
 
 @available(iOS 13.0, *)
 open class UndoableEventStore : EventStore {
-  var undo : UndoManager?
+  public var undo : UndoManager?
   
   public override func append(_ event : Event) {
     var e = event
