@@ -25,42 +25,42 @@ public class IndexedAggregator<E : ListEntry, R : Hashable&Codable> : ListAggreg
     super.init()
   }
   
-  convenience init(filter: @escaping ListFilterClosure) {
+  public convenience init(filter: @escaping ListFilterClosure) {
     self.init()
     self.filter = filter
   }
   
-  convenience init(config : @escaping ChildAggregatorClosure) {
+  public convenience init(config : @escaping ChildAggregatorClosure) {
     self.init()
     self.childConfig = config
   }
   
-  convenience init(config : @escaping ChildAggregatorClosure,
+  public convenience init(config : @escaping ChildAggregatorClosure,
                    filter: @escaping ListFilterClosure) {
     self.init()
     self.childConfig = config
     self.filter = filter
   }
   
-  convenience init(role: R) {
+  public convenience init(role: R) {
     self.init()
     self.role = role
   }
   
-  convenience init(role: R, store: UndoableEventStore) {
+  public convenience init(role: R, store: UndoableEventStore) {
     self.init()
     self.role = role
     self.store = store
     self.subscribeToStore()
   }
   
-  convenience init(role: R, filter: @escaping ListFilterClosure) {
+  public convenience init(role: R, filter: @escaping ListFilterClosure) {
     self.init()
     self.role = role
     self.filter = filter
   }
   
-  convenience init(role: R, store: UndoableEventStore, filter: @escaping ListFilterClosure) {
+  public convenience init(role: R, store: UndoableEventStore, filter: @escaping ListFilterClosure) {
     self.init()
     self.role = role
     self.filter = filter
@@ -68,7 +68,7 @@ public class IndexedAggregator<E : ListEntry, R : Hashable&Codable> : ListAggreg
     self.subscribeToStore()
   }
   
-  convenience init(role: R, store: UndoableEventStore, parent: UUID, filter: @escaping ListFilterClosure) {
+  public convenience init(role: R, store: UndoableEventStore, parent: UUID, filter: @escaping ListFilterClosure) {
     self.init()
     self.role = role
     self.filter = filter
@@ -77,7 +77,7 @@ public class IndexedAggregator<E : ListEntry, R : Hashable&Codable> : ListAggreg
     self.subscribeToStore()
   }
   
-  convenience init(role: R, store: UndoableEventStore, parent: UUID, config: @escaping ChildAggregatorClosure, filter: @escaping ListFilterClosure) {
+  public convenience init(role: R, store: UndoableEventStore, parent: UUID, config: @escaping ChildAggregatorClosure, filter: @escaping ListFilterClosure) {
     self.init()
     self.role = role
     self.filter = filter
@@ -87,13 +87,13 @@ public class IndexedAggregator<E : ListEntry, R : Hashable&Codable> : ListAggreg
     self.subscribeToStore()
   }
   
-  convenience init(role: R, config : @escaping ChildAggregatorClosure) {
+  public convenience init(role: R, config : @escaping ChildAggregatorClosure) {
     self.init()
     self.role = role
     self.childConfig = config
   }
   
-  convenience init(store : UndoableEventStore) {
+  public convenience init(store : UndoableEventStore) {
     self.init()
     self.store = store
     self.subscribeToStore()
