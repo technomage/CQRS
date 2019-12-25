@@ -9,74 +9,75 @@
 import Foundation
 import Combine
 
-protocol ListEntry : Equatable, Codable {
+public protocol ListEntry : Equatable, Codable {
   var id : UUID { get }
 }
 
-protocol NamedListEntry : ListEntry {
+public protocol NamedListEntry : ListEntry {
   var name : String { get set }
 }
 
 @available(iOS 13.0, *)
-class ListAggregator<E : ListEntry, R : Hashable&Codable> : Subscriber, ObservableObject, Aggregator { typealias Input = ListChange<E,R>
-  typealias Failure = Never
-  typealias LE = ListChange<E,R>
-  typealias ListFilterClosure = (LE) -> Bool
-  typealias ChildAggregatorClosure = (_ store: UndoableEventStore, _ par : ListAggregator<E,R>, _ obj: E) -> ObjectAggregator<E,R>
+public class ListAggregator<E : ListEntry, R : Hashable&Codable> : Subscriber, ObservableObject, Aggregator {
+  public typealias Input = ListChange<E,R>
+  public typealias Failure = Never
+  public typealias LE = ListChange<E,R>
+  public typealias ListFilterClosure = (LE) -> Bool
+  public typealias ChildAggregatorClosure = (_ store: UndoableEventStore, _ par : ListAggregator<E,R>, _ obj: E) -> ObjectAggregator<E,R>
   
-  var role : R?
-  var filter : ListFilterClosure?
+  public var role : R?
+  public var filter : ListFilterClosure?
 
-  @Published var list : [E] = []
-  @Published var events : [LE] = []
+  @Published public var list : [E] = []
+  @Published public var events : [LE] = []
   var sub : Subscription?
-  var store : UndoableEventStore?
-  var childConfig : ChildAggregatorClosure?
-  var objAggs = Dictionary<UUID, ObjectAggregator<E,R>>()
+  public var store : UndoableEventStore?
+  public var childConfig : ChildAggregatorClosure?
+  public var objAggs = Dictionary<UUID, ObjectAggregator<E,R>>()
   var objCancels = Dictionary<UUID, AnyCancellable>()
-  var parent : UUID?
-  var name : String?
+  public var parent : UUID?
+  public var name : String?
   
-  required init() {
+  public required init() {
     
   }
   
-  convenience init(filter: @escaping ListFilterClosure) {
+  public convenience init(filter: @escaping ListFilterClosure) {
     self.init()
     self.filter = filter
   }
   
-  convenience init(config : @escaping ChildAggregatorClosure) {
+  public convenience init(config : @escaping ChildAggregatorClosure) {
     self.init()
     self.childConfig = config
   }
   
-  convenience init(config : @escaping ChildAggregatorClosure,
+  public convenience init(config : @escaping ChildAggregatorClosure,
                    filter: @escaping ListFilterClosure) {
     self.init()
     self.childConfig = config
     self.filter = filter
   }
   
-  convenience init(role: R) {
+  public convenience init(role: R) {
     self.init()
     self.role = role
   }
   
-  convenience init(role: R, store: UndoableEventStore) {
+  public convenience init(role: R, store: UndoableEventStore) {
     self.init()
     self.role = role
     self.store = store
     self.subscribeToStore()
   }
   
-  convenience init(role: R, filter: @escaping ListFilterClosure) {
+  public convenience init(role: R, filter: @escaping ListFilterClosure) {
     self.init()
     self.role = role
     self.filter = filter
   }
   
-  convenience init(role: R, store: UndoableEventStore, filter: @escaping ListFilterClosure) {
+  public convenience init(role: R, store: UndoableEventStore, filter: @escaping ListFilterClosure) {
     self.init()
     self.role = role
     self.filter = filter
@@ -84,7 +85,7 @@ class ListAggregator<E : ListEntry, R : Hashable&Codable> : Subscriber, Observab
     self.subscribeToStore()
   }
   
-  convenience init(role: R, store: UndoableEventStore, parent: UUID, filter: @escaping ListFilterClosure) {
+  public convenience init(role: R, store: UndoableEventStore, parent: UUID, filter: @escaping ListFilterClosure) {
     self.init()
     self.role = role
     self.filter = filter
@@ -93,7 +94,7 @@ class ListAggregator<E : ListEntry, R : Hashable&Codable> : Subscriber, Observab
     self.subscribeToStore()
   }
   
-  convenience init(role: R, store: UndoableEventStore, parent: UUID, config: @escaping ChildAggregatorClosure, filter: @escaping ListFilterClosure) {
+  public convenience init(role: R, store: UndoableEventStore, parent: UUID, config: @escaping ChildAggregatorClosure, filter: @escaping ListFilterClosure) {
     self.init()
     self.role = role
     self.filter = filter
@@ -103,24 +104,24 @@ class ListAggregator<E : ListEntry, R : Hashable&Codable> : Subscriber, Observab
     self.subscribeToStore()
   }
   
-  convenience init(role: R, config : @escaping ChildAggregatorClosure) {
+  public convenience init(role: R, config : @escaping ChildAggregatorClosure) {
     self.init()
     self.role = role
     self.childConfig = config
   }
   
-  convenience init(store : UndoableEventStore) {
+  public convenience init(store : UndoableEventStore) {
     self.init()
     self.store = store
     self.subscribeToStore()
   }
   
-  convenience init(store : UndoableEventStore, filter: @escaping ListFilterClosure) {
+  public convenience init(store : UndoableEventStore, filter: @escaping ListFilterClosure) {
     self.init(store: store)
     self.filter = filter
   }
   
-  func subscribeToStore() {
+  public func subscribeToStore() {
     guard self.store != nil else {return}
     self.store!.log
       .filter({e in e is ListChange<E,R>})
@@ -128,12 +129,12 @@ class ListAggregator<E : ListEntry, R : Hashable&Codable> : Subscriber, Observab
       .subscribe(self)
   }
   
-  func setName(_ name : String) -> Self {
+  public func setName(_ name : String) -> Self {
     self.name = name
     return self
   }
   
-  func delete(project: UUID, indices: IndexSet, in parent : UUID?, role: R?) {
+  public func delete(project: UUID, indices: IndexSet, in parent : UUID?, role: R?) {
     for i in indices {
       let field = self.list[i]
       let e = ListChange<E,R>(project: project, subject: field.id,
@@ -143,7 +144,7 @@ class ListAggregator<E : ListEntry, R : Hashable&Codable> : Subscriber, Observab
     }
   }
   
-  func move(project: UUID, from: IndexSet, to: Int, in parent: UUID?, role: R? ) {
+  public func move(project: UUID, from: IndexSet, to: Int, in parent: UUID?, role: R? ) {
     for f in from {
       let item = self.list[f]
       let e = ListChange<E,R>(project: project, subject: item.id,
@@ -153,12 +154,12 @@ class ListAggregator<E : ListEntry, R : Hashable&Codable> : Subscriber, Observab
     }
   }
   
-  func receive(subscription: Subscription) {
+  public func receive(subscription: Subscription) {
     sub = subscription
     subscription.request(Subscribers.Demand.unlimited)
   }
   
-  func filterEvent(_ input: LE) -> Bool {
+  public func filterEvent(_ input: LE) -> Bool {
     guard !self.events.contains(where: { e in e.id == input.id}) else {return false}
 //    NSLog("\n\n@@@@ Filter list event \(input) for role: \(role) in \(name)\n\n")
     guard self.role == nil || self.role == input.role else {return false}
@@ -166,7 +167,7 @@ class ListAggregator<E : ListEntry, R : Hashable&Codable> : Subscriber, Observab
     return self.filter!(input)
   }
   
-  func receive(_ input: LE) -> Subscribers.Demand {
+  public func receive(_ input: LE) -> Subscribers.Demand {
     if self.filterEvent(input) {
       events.append(input)
       switch input.action {
@@ -209,7 +210,7 @@ class ListAggregator<E : ListEntry, R : Hashable&Codable> : Subscriber, Observab
     return Subscribers.Demand.unlimited
   }
   
-  func receive(completion: Subscribers.Completion<Never>) {
+  public func receive(completion: Subscribers.Completion<Never>) {
     sub?.cancel()
     sub = nil
   }

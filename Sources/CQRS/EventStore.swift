@@ -9,11 +9,11 @@
 import Foundation
 import Combine
 
-protocol Aggregator {
+public protocol Aggregator {
 }
 
 @available(iOS 13.0, *)
-class EventStore : ObservableObject {
+public class EventStore : ObservableObject {
   var seq : Int = 0
   @Published var event : Event? = nil
   var log : EventLog
@@ -48,7 +48,7 @@ class EventStore : ObservableObject {
 }
 
 @available(iOS 13.0, *)
-class UndoableEventStore : EventStore {
+public class UndoableEventStore : EventStore {
   var undo : UndoManager?
   
   override func append(_ event : Event) {
@@ -79,9 +79,9 @@ class UndoableEventStore : EventStore {
   }
 }
 
-typealias Events = [Event]
+public typealias Events = [Event]
 
-protocol Event {
+public protocol Event {
   var seq : Int? { get set }
   var id : UUID { get }
   var project : UUID { get }
@@ -94,7 +94,7 @@ protocol Event {
   static func decode(from data: Data) throws -> Event
 }
 
-enum EventStatus : Int, Codable {
+public enum EventStatus : Int, Codable {
   case new       // Event has been created and not yet saved outside RAM
   case queued    // Stored in the event store locally just in RAM
   case cached    // Event has been cached to local storage
@@ -102,7 +102,7 @@ enum EventStatus : Int, Codable {
   case sequenced // Event has been merged into main branch of project
 }
 
-enum UndoMode : Int, Codable {
+public enum UndoMode : Int, Codable {
   case change    // A normal change
   case undo      // undo a prior change
   case redo      // reapply a prior change

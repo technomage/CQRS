@@ -8,7 +8,7 @@
 
 import Foundation
 
-struct KeyPathTracker {
+public struct KeyPathTracker {
   static var keyPathToKey = [AnyKeyPath : String]()
   static var keyToKeyPath = [String : AnyKeyPath]()
   

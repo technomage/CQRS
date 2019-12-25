@@ -12,10 +12,10 @@
 
 import Foundation
 
-struct TypeTracker {
+public struct TypeTracker {
   static var classes = [String : Any.Type]()
   
-  static func register(_ cls : Any.Type, key: String) {
+  public static func register(_ cls : Any.Type, key: String) {
     classes[key] = cls
   }
   

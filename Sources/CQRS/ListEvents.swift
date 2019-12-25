@@ -9,18 +9,18 @@
 import Foundation
 import Combine
 
-protocol ListEvent : Event {
-  associatedtype R : Equatable
+public protocol ListEvent : Event {
+  associatedtype R : Equatable,Codable
   var parent : UUID? { get }
   var role : R? { get }
 }
 
-struct ListChange<E : Codable,R : Equatable&Codable> : Equatable, ListEvent, Codable {
-  static func == (lhs: ListChange<E,R>, rhs: ListChange<E,R>) -> Bool {
+public struct ListChange<E : Codable,R : Equatable&Codable> : Equatable, ListEvent, Codable {
+  public static func == (lhs: ListChange<E,R>, rhs: ListChange<E,R>) -> Bool {
     return lhs.seq == rhs.seq && lhs.id == rhs.id && lhs.subject == rhs.subject && lhs.parent == rhs.parent && lhs.status == rhs.status && lhs.undoType == rhs.undoType && lhs.role == rhs.role
   }
   
-  enum ListAction : Codable {
+  public enum ListAction : Codable {
     case create(at : Int, obj : E)
     case delete(at : Int, obj : E)
     case move(from : Int, to : Int)
@@ -37,7 +37,7 @@ struct ListChange<E : Codable,R : Equatable&Codable> : Equatable, ListEvent, Cod
       case moveTo
     }
     
-    func encode(to encoder: Encoder) throws {
+    public func encode(to encoder: Encoder) throws {
       var container = encoder.container(keyedBy: ListActionType.self)
       switch(self) {
         case .create(let at, let obj):
@@ -52,7 +52,7 @@ struct ListChange<E : Codable,R : Equatable&Codable> : Equatable, ListEvent, Cod
       }
     }
     
-    init(from decoder: Decoder) throws {
+    public init(from decoder: Decoder) throws {
       let container = try decoder.container(keyedBy: ListActionType.self)
       if let at = try container.decodeIfPresent(Int.self, forKey: .createAt) {
         let obj = try container.decode(E.self, forKey: .createObj)
@@ -68,28 +68,28 @@ struct ListChange<E : Codable,R : Equatable&Codable> : Equatable, ListEvent, Cod
     }
   }
   
-  var seq : Int? = nil
-  var id : UUID = UUID()
-  var project : UUID
-  var subject : UUID
-  var status : EventStatus = .new
-  var undoType : UndoMode = .change
-  var action : ListAction
-  var parent : UUID?
-  var role : R?
+  public var seq : Int? = nil
+  public var id : UUID = UUID()
+  public var project : UUID
+  public var subject : UUID
+  public var status : EventStatus = .new
+  public var undoType : UndoMode = .change
+  public var action : ListAction
+  public var parent : UUID?
+  public var role : R?
   
-  init(project: UUID, subject: UUID, action: ListAction) {
+  public init(project: UUID, subject: UUID, action: ListAction) {
     self.project = project
     self.subject = subject
     self.action = action
   }
   
-  init(project: UUID, subject: UUID, action: ListAction, parent: UUID?, role: R?) {
+  public init(project: UUID, subject: UUID, action: ListAction, parent: UUID?, role: R?) {
     self.init(project: project, subject: subject, action: action)
     self.role = role
   }
   
-  func reverse() -> Event {
+  public func reverse() -> Event {
     var e = self
     e.id = UUID()
     switch action {
@@ -107,12 +107,12 @@ struct ListChange<E : Codable,R : Equatable&Codable> : Equatable, ListEvent, Cod
     return e
   }
   
-  func encode() throws -> Data {
+  public func encode() throws -> Data {
     let encoder = JSONEncoder()
     return try encoder.encode(self)
   }
   
-  static func decode(from data: Data) throws -> Event {
+  public static func decode(from data: Data) throws -> Event {
     return try JSONDecoder().decode(self, from: data)
   }
 
@@ -128,7 +128,7 @@ struct ListChange<E : Codable,R : Equatable&Codable> : Equatable, ListEvent, Cod
     case role
   }
   
-  func encode(to encoder: Encoder) throws {
+  public func encode(to encoder: Encoder) throws {
     var container = encoder.container(keyedBy: ListChangeType.self)
     try container.encode(self.id, forKey: .id)
     try container.encode(self.seq, forKey: .seq)
@@ -141,7 +141,7 @@ struct ListChange<E : Codable,R : Equatable&Codable> : Equatable, ListEvent, Cod
     try container.encode(self.role, forKey: .role)
   }
 
-  init(from decoder: Decoder) throws {
+  public init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: ListChangeType.self)
     id = try container.decode(UUID.self, forKey: .id)
     seq = try container.decode(Int?.self, forKey: .seq)

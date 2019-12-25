@@ -9,7 +9,7 @@
 import Foundation
 import Combine
 
-protocol DebugNamed {
+public protocol DebugNamed {
   var name : String { get }
 }
 
@@ -48,28 +48,28 @@ class LogSubscription<S> : Subscription where S : Subscriber, S.Input == Event {
 }
 
 @available(iOS 13.0, *)
-class EventLog : Subscriber, Publisher {
-  typealias Output = Event
-  typealias Input = Event?
-  typealias Failure = Never
+public class EventLog : Subscriber, Publisher {
+  public typealias Output = Event
+  public typealias Input = Event?
+  public typealias Failure = Never
   
   var downStreams : [Subscription] = []
   var upStream : Subscription?
   var events : Events = []
   
-  func receive<S>(subscriber: S) where S : Subscriber, EventLog.Failure == S.Failure, EventLog.Output == S.Input {
+  public func receive<S>(subscriber: S) where S : Subscriber, EventLog.Failure == S.Failure, EventLog.Output == S.Input {
 //    NSLog("@@@@ Subscription to log by \(subscriber) with \(downStreams.count) subscriptions current")
     let subs : LogSubscription<S> = LogSubscription<S>(subscriber: subscriber, log: self)
     downStreams.append(subs)
     subscriber.receive(subscription: subs)
   }
   
-  func receive(subscription: Subscription) {
+  public func receive(subscription: Subscription) {
     upStream = subscription
     subscription.request(Subscribers.Demand.unlimited)
   }
   
-  func receive(_ input: Event?) -> Subscribers.Demand {
+  public func receive(_ input: Event?) -> Subscribers.Demand {
     if let inp = input {
       var evt = inp
       if evt.status == .new {
@@ -85,7 +85,7 @@ class EventLog : Subscriber, Publisher {
     return Subscribers.Demand.unlimited;
   }
   
-  func receive(completion: Subscribers.Completion<Never>) {
+  public func receive(completion: Subscribers.Completion<Never>) {
     upStream?.cancel()
     upStream = nil
   }

@@ -10,7 +10,7 @@ import Foundation
 import Combine
 
 @available(iOS 13.0, *)
-struct EventToFileLogger {
+public struct EventToFileLogger {
   static var queue = DispatchQueue(label: "event_log")
   var path : URL?
   var created : Bool = false
