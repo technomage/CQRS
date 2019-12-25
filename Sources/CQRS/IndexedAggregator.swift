@@ -11,7 +11,7 @@ import Combine
 
 @available(iOS 13.0, *)
 open class IndexedAggregator<E : ListEntry, R : Hashable&Codable> : ListAggregator<E,R> {
-  var dict : Dictionary<UUID, E> {
+  public var dict : Dictionary<UUID, E> {
     get {
       var result : [UUID:E] = [:]
       self.objAggs.values.forEach { agg in
