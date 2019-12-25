@@ -18,7 +18,7 @@ open class EventStore : ObservableObject {
   @Published var event : Event? = nil
   var log : EventLog
   
-  init() {
+  public init() {
     let l = EventLog()
     self.log = l
     self.$event.subscribe(log)
@@ -35,7 +35,7 @@ open class EventStore : ObservableObject {
     return seq
   }
   
-  func append(_ event : Event) {
+  public func append(_ event : Event) {
     self._append(event)
   }
   
@@ -51,7 +51,7 @@ open class EventStore : ObservableObject {
 open class UndoableEventStore : EventStore {
   var undo : UndoManager?
   
-  override func append(_ event : Event) {
+  public override func append(_ event : Event) {
     var e = event
     e.undoType = .change
     self._append(e)
@@ -64,7 +64,7 @@ open class UndoableEventStore : EventStore {
     super._append(event)
   }
   
-  func reverse(_ event : Event) {
+  public func reverse(_ event : Event) {
     var e = event
     switch e.undoType {
       case .change:
