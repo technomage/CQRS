@@ -15,7 +15,7 @@ public struct EventToFileLogger {
   var path : URL?
   var created : Bool = false
   
-  init?() {
+  public init?() {
     guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return nil }
     let fileName = "events.log"
     path = documentsDirectory.appendingPathComponent(fileName)
@@ -26,7 +26,7 @@ public struct EventToFileLogger {
     }
   }
   
-  func subscribe(to log: EventLog) -> AnyCancellable {
+  public func subscribe(to log: EventLog) -> AnyCancellable {
     return log.receive(on: EventToFileLogger.queue)
       .sink { e in
         do {
@@ -62,7 +62,7 @@ public struct EventToFileLogger {
   }
   
   /// load events from the log file if it exists and has content, return true if events were actually loaded
-  func loadEvents(store: UndoableEventStore) -> Bool {
+  public func loadEvents(store: UndoableEventStore) -> Bool {
     var result = false
     let fileHandle = try? FileHandle(forReadingFrom: self.path!)
     guard fileHandle != nil else {return false}
