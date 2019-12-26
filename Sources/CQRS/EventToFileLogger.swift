@@ -12,8 +12,8 @@ import Combine
 @available(iOS 13.0, *)
 public struct EventToFileLogger {
   static var queue = DispatchQueue(label: "event_log")
-  var path : URL?
-  var created : Bool = false
+  public var path : URL?
+  public var created : Bool = false
   
   public init?() {
     guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return nil }
