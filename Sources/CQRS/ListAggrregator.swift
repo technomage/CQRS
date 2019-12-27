@@ -134,22 +134,40 @@ open class ListAggregator<E : ListEntry, R : Hashable&Codable> : Subscriber, Obs
     return self
   }
   
-  public func delete(project: UUID, indices: IndexSet, in parent : UUID?, role: R?) {
+  public func delete(project: UUID, indices: IndexSet) {
     for i in indices {
       let field = self.list[i]
       let e = ListChange<E,R>(project: project, subject: field.id,
-        action: .delete(at: i, obj: field),
-        parent: parent, role: role)
+        action: .delete(at: i, obj: field))
       self.store?.append(e)
     }
   }
   
-  public func move(project: UUID, from: IndexSet, to: Int, in parent: UUID?, role: R? ) {
+  public func move(project: UUID, from: IndexSet, to: Int) {
     for f in from {
       let item = self.list[f]
       let e = ListChange<E,R>(project: project, subject: item.id,
-        action: .move(from: f, to: min(to, self.list.count)),
-        parent: parent, role: role)
+        action: .move(from: f, to: min(to, self.list.count)))
+      self.store?.append(e)
+    }
+  }
+  
+  public func delete(project: UUID, indices: IndexSet, in parent : UUID, role: R) {
+    for i in indices {
+      let field = self.list[i]
+      let e = ListChange<E,R>(project: project, subject: field.id,
+                              action: .delete(at: i, obj: field),
+                              parent: parent, role: role)
+      self.store?.append(e)
+    }
+  }
+  
+  public func move(project: UUID, from: IndexSet, to: Int, in parent: UUID, role: R) {
+    for f in from {
+      let item = self.list[f]
+      let e = ListChange<E,R>(project: project, subject: item.id,
+                              action: .move(from: f, to: min(to, self.list.count)),
+                              parent: parent, role: role)
       self.store?.append(e)
     }
   }
