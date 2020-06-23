@@ -21,54 +21,59 @@ public struct ListChange<E : Codable,R : Equatable&Codable> : Equatable, ListEve
   }
   
   public enum ListAction : Codable {
-    case create(at : Int, obj : E)
-    case delete(at : Int, obj : E)
-    case move(from : Int, to : Int)
+    case create(after : UUID?, obj : E)
+    case delete(after: UUID?, obj : E)
+    case move(from : UUID, after : UUID?, wasAfter: UUID?)
     
     enum ListActionType: String, CodingKey {
       case create
-      case createAt
+      case createAfter
       case createObj
       case delete
-      case deleteAt
+      case deleteAfter
       case deleteObj
       case move
       case moveFrom
-      case moveTo
+      case moveAfter
+      case moveWasAfter
     }
     
     public func encode(to encoder: Encoder) throws {
       var container = encoder.container(keyedBy: ListActionType.self)
       switch(self) {
         case .create(let at, let obj):
-          try container.encode(at, forKey: .createAt)
+          try container.encode(at, forKey: .createAfter)
           try container.encode(obj, forKey: .createObj)
         case .delete(let at, let obj):
-          try container.encode(at, forKey: .deleteAt)
+          try container.encode(at, forKey: .deleteAfter)
           try container.encode(obj, forKey: .deleteObj)
-        case .move(let from, let to):
+        case .move(let from, let to, let was):
           try container.encode(from, forKey: .moveFrom)
-          try container.encode(to, forKey: .moveTo)
+          try container.encode(to, forKey: .moveAfter)
+          try container.encode(was, forKey: .moveWasAfter)
       }
     }
     
     public init(from decoder: Decoder) throws {
       let container = try decoder.container(keyedBy: ListActionType.self)
-      if let at = try container.decodeIfPresent(Int.self, forKey: .createAt) {
+      if container.contains(.createObj) {
         let obj = try container.decode(E.self, forKey: .createObj)
-        self = .create(at: at, obj: obj)
-      } else if let at = try container.decodeIfPresent(Int.self, forKey: .deleteAt) {
+        let after = try container.decodeIfPresent(UUID?.self, forKey: .createAfter) ?? nil
+        self = ListAction.create(after: after, obj: obj)
+      } else if container.contains(.deleteObj) {
+        let after = try container.decodeIfPresent(UUID?.self, forKey: .deleteAfter) ?? nil
         let obj = try container.decode(E.self, forKey: .deleteObj)
-        self = .delete(at: at, obj: obj)
+        self = .delete(after: after, obj: obj)
       } else {
-        let from = try container.decode(Int.self, forKey: .moveFrom)
-        let to = try container.decode(Int.self, forKey: .moveTo)
-        self = .move(from: from, to: to)
+        let from = try container.decode(UUID.self, forKey: .moveFrom)
+        let after = try container.decode(UUID?.self, forKey: .moveAfter)
+        let wasAfter = try container.decode(UUID?.self, forKey: .moveWasAfter)
+        self = .move(from: from, after: after, wasAfter: wasAfter)
       }
     }
   }
   
-  public var seq : Int? = nil
+  public var seq : Seq? = nil
   public var id : UUID = UUID()
   public var project : UUID
   public var subject : UUID
@@ -87,22 +92,19 @@ public struct ListChange<E : Codable,R : Equatable&Codable> : Equatable, ListEve
   public init(project: UUID, subject: UUID, action: ListAction, parent: UUID?, role: R?) {
     self.init(project: project, subject: subject, action: action)
     self.role = role
+    self.parent = parent
   }
   
   public func reverse() -> Event {
     var e = self
     e.id = UUID()
     switch action {
-      case .create(let at, let obj):
-        e.action = .delete(at: at, obj: obj)
-      case .delete(let at, let obj):
-        e.action = .create(at: at, obj: obj)
-      case .move(let f, let t):
-        if t > f {
-          e.action = .move(from: t-1, to: f)
-        } else {
-          e.action = .move(from: t, to: f+1)
-        }
+      case .create(let after, let obj):
+        e.action = .delete(after: after, obj: obj)
+      case .delete(let after, let obj):
+        e.action = .create(after: after, obj: obj)
+      case .move(let from, let after, let wasAfter):
+        e.action = .move(from: from, after: wasAfter, wasAfter: after)
     }
     return e
   }
@@ -144,7 +146,7 @@ public struct ListChange<E : Codable,R : Equatable&Codable> : Equatable, ListEve
   public init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: ListChangeType.self)
     id = try container.decode(UUID.self, forKey: .id)
-    seq = try container.decode(Int?.self, forKey: .seq)
+    seq = try container.decode(Seq?.self, forKey: .seq)
     project = try container.decode(UUID.self, forKey: .project)
     subject = try container.decode(UUID.self, forKey: .subject)
     status = try container.decode(EventStatus.self, forKey: .status)

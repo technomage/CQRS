@@ -21,7 +21,7 @@ open class IndexedAggregator<E : ListEntry, R : Hashable&Codable> : ListAggregat
     }
   }
 
-  required public init() {
+  public override init() {
     super.init()
   }
   

@@ -38,7 +38,7 @@ open class ListAggregator<E : ListEntry, R : Hashable&Codable> : Subscriber, Obs
   public var parent : UUID?
   public var name : String?
   
-  public required init() {
+  public init() {
     
   }
   
@@ -134,49 +134,83 @@ open class ListAggregator<E : ListEntry, R : Hashable&Codable> : Subscriber, Obs
     return self
   }
   
-  public func delete(project: UUID, indices: IndexSet) {
-    for i in indices {
-      let field = self.list[i]
-      let e = ListChange<E,R>(project: project, subject: field.id,
-        action: .delete(at: i, obj: field))
-      self.store?.append(e)
+  /// Find the object prior to the obj with the given ID
+  public func find(before: UUID) -> E? {
+    for i in 0..<self.list.count {
+      if self.list[i].id == before {
+        if i == 0 {
+          return nil
+        } else {
+          return self.list[i-1]
+        }
+      }
     }
+    return nil
   }
   
-  public func move(project: UUID, from: IndexSet, to: Int) {
-    for f in from {
-      let item = self.list[f]
-      let e = ListChange<E,R>(project: project, subject: item.id,
-        action: .move(from: f, to: min(to, self.list.count)))
-      self.store?.append(e)
+  /// Find the object after to the obj with the given ID
+  public func find(after: UUID) -> E? {
+    for i in 0..<self.list.count {
+      if self.list[i].id == after {
+        if i == self.list.count-1 {
+          return nil
+        } else {
+          return self.list[i+1]
+        }
+      }
     }
+    return nil
   }
   
-  public func delete(project: UUID, indices: IndexSet, in parent : UUID, role: R) {
-    for i in indices {
-      let field = self.list[i]
-      let e = ListChange<E,R>(project: project, subject: field.id,
-                              action: .delete(at: i, obj: field),
-                              parent: parent, role: role)
-      self.store?.append(e)
+  /// Locate the object in the list with the given id
+  public func find(id: UUID) -> E? {
+    for i in 0..<self.list.count {
+      if self.list[i].id == id {
+        return self.list[i]
+      }
     }
+    return nil
   }
   
-  public func move(project: UUID, from: IndexSet, to: Int, in parent: UUID, role: R) {
-    for f in from {
-      let item = self.list[f]
-      let e = ListChange<E,R>(project: project, subject: item.id,
-                              action: .move(from: f, to: min(to, self.list.count)),
-                              parent: parent, role: role)
-      self.store?.append(e)
-    }
+  /// Delete an object from the list for a given project.  This emits events that are processed in the event store.
+  public func delete(project: UUID, obj: E) {
+    let prior = self.find(before: obj.id)
+    let e = ListChange<E,R>(project: project, subject: obj.id,
+                            action: .delete(after: prior?.id ?? nil, obj: obj))
+    self.store?.append(e)
   }
   
+  /// Move an object to a different position in the list following a given obj id
+  public func move(project: UUID, from: UUID, after: UUID?, wasAfter: UUID?) {
+    let e = ListChange<E,R>(project: project, subject: from,
+                            action: .move(from: from, after: after, wasAfter: wasAfter))
+    self.store?.append(e)
+  }
+  
+  /// Delete an object from the list with a given partent and role
+  public func delete(project: UUID, obj: E, in parent : UUID, role: R) {
+    let prior = self.find(before: obj.id)
+    let e = ListChange<E,R>(project: project, subject: obj.id,
+                            action: .delete(after: prior?.id ?? nil, obj: obj),
+                            parent: parent, role: role)
+    self.store?.append(e)
+  }
+  
+  /// Move an object within a list given parent and role
+  public func move(project: UUID, from: UUID, after: UUID?, wasAfter: UUID?, in parent: UUID, role: R) {
+    let e = ListChange<E,R>(project: project, subject: from,
+                            action: .move(from: from, after: after, wasAfter: wasAfter),
+                            parent: parent, role: role)
+    self.store?.append(e)
+  }
+  
+  /// Respond to a new subscription
   public func receive(subscription: Subscription) {
     sub = subscription
     subscription.request(Subscribers.Demand.unlimited)
   }
   
+  /// Filter events against the role and filter for the aggregator
   public func filterEvent(_ input: LE) -> Bool {
     guard !self.events.contains(where: { e in e.id == input.id}) else {return false}
 //    NSLog("\n\n@@@@ Filter list event \(input) for role: \(role) in \(name)\n\n")
@@ -185,19 +219,23 @@ open class ListAggregator<E : ListEntry, R : Hashable&Codable> : Subscriber, Obs
     return self.filter!(input)
   }
   
+  /// Receive a new event for the aggregator
   public func receive(_ input: LE) -> Subscribers.Demand {
     if self.filterEvent(input) {
       events.append(input)
       switch input.action {
-        case .create(let at, let obj) :
-//           NSLog("\n\n@@@@ Inserting object in \(name) \(role) of \(parent) list \(obj) has child config: \(self.childConfig != nil)\n\n")
+        case .create(let after, let obj) :
+//          NSLog("\n\n@@@@ Inserting object in \(String(describing: name)) \(String(describing: role)) of \(String(describing: parent)) list \(obj) has child config: \(self.childConfig != nil)\n\n")
           let oa = self.childConfig?(store!, self, obj) ??
             ObjectAggregator<E,R>(obj: obj, store: self.store) { e in e.subject == obj.id}
           // NSLog("@@@@ Child aggregator has children: \(oa.childAggregators)")
           oa.store = self.store
           self.store?.log.subscribe(oa)
           self.objAggs[obj.id] = oa
-          self.list.insert(obj, at: at)
+          let afterIndex = list.firstIndex { d in
+            d.id == after
+            }
+          self.list.insert(obj, at: afterIndex != nil ? afterIndex!+1 : 0)
           self.objCancels[obj.id] = oa.$obj
             .receive(on: RunLoop.main).sink { o in
               // NSLog("@@@@ Updating list \(self.name) with object change \(o)\n\n")
@@ -219,10 +257,24 @@ open class ListAggregator<E : ListEntry, R : Hashable&Codable> : Subscriber, Obs
           self.objCancels[input.subject]?.cancel()
           self.objCancels[input.subject] = nil
           self.objAggs.removeValue(forKey: input.subject)
-        case .move(let f, let t) :
-          let e = list[f]
-          list.remove(at: f)
-          list.insert(e, at: t)
+        case .move(let from, let after, _) :
+          let e = self.find(id: from)
+          if e != nil {
+            let fromIndex = list.firstIndex { d in
+              d.id == from
+            }
+            let afterIndex = list.firstIndex { d in
+              d.id == after
+              } ?? -1
+            if fromIndex != nil {
+              list.remove(at: fromIndex!)
+              if fromIndex! < afterIndex {
+                list.insert(e!, at: afterIndex)
+              } else {
+                list.insert(e!, at: afterIndex+1)
+              }
+            }
+          }
       }
     }
     return Subscribers.Demand.unlimited

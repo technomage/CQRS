@@ -14,7 +14,7 @@ public protocol Aggregator {
 
 @available(iOS 13.0, *)
 open class EventStore : ObservableObject {
-  var seq : Int = 0
+  var seq = Seq()
   @Published public var event : Event? = nil
   public var log : EventLog
   
@@ -24,15 +24,15 @@ open class EventStore : ObservableObject {
     self.$event.subscribe(log)
   }
   
-  func next(_ evt: Event) -> Int {
+  func next(_ evt: Event) -> Seq {
     if evt.seq != nil {
-      if evt.seq! > self.seq {
+      if evt.seq!.after(self.seq) {
         self.seq = evt.seq!
       }
     } else {
-      seq += 1
+      self.seq = self.seq.next(Seq.localID!)
     }
-    return seq
+    return self.seq
   }
   
   public func append(_ event : Event) {
@@ -81,8 +81,8 @@ open class UndoableEventStore : EventStore {
 
 public typealias Events = [Event]
 
-public protocol Event {
-  var seq : Int? { get set }
+public protocol Event : Codable {
+  var seq : Seq? { get set }
   var id : UUID { get }
   var project : UUID { get }
   var subject : UUID { get }
@@ -94,12 +94,16 @@ public protocol Event {
   static func decode(from data: Data) throws -> Event
 }
 
+public protocol Named {
+  var id : UUID {get}
+  var name : String {get}
+}
+
 public enum EventStatus : Int, Codable {
   case new       // Event has been created and not yet saved outside RAM
   case queued    // Stored in the event store locally just in RAM
   case cached    // Event has been cached to local storage
   case persisted // Event has been saved to iCloud
-  case sequenced // Event has been merged into main branch of project
 }
 
 public enum UndoMode : Int, Codable {

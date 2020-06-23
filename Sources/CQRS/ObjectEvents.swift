@@ -19,7 +19,7 @@ public struct SetEvent<E,T : Codable> : Event, Equatable, ObjectEvent, Codable {
     return lhs.seq == rhs.seq && lhs.id == rhs.id && lhs.subject == rhs.subject
   }
 
-  public var seq : Int? = nil
+  public var seq : Seq? = nil
   public var id : UUID = UUID()
   public var project : UUID
   public var subject : UUID
@@ -101,7 +101,7 @@ public struct SetEvent<E,T : Codable> : Event, Equatable, ObjectEvent, Codable {
   public init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: SetEventKey.self)
     id = try container.decode(UUID.self, forKey: .id)
-    seq = try container.decode(Int?.self, forKey: .seq)
+    seq = try container.decode(Seq?.self, forKey: .seq)
     project = try container.decode(UUID.self, forKey: .project)
     subject = try container.decode(UUID.self, forKey: .subject)
     status = try container.decode(EventStatus.self, forKey: .status)
