@@ -79,8 +79,10 @@ open class UndoableEventStore : EventStore {
   }
 }
 
+@available(iOS 13.0, *)
 public typealias Events = [Event]
 
+@available(iOS 13.0, *)
 public protocol Event : Codable {
   var seq : Seq? { get set }
   var id : UUID { get }

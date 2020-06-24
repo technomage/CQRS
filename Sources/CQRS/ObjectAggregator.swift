@@ -9,6 +9,7 @@
 import Foundation
 import Combine
 
+@available(iOS 13.0, *)
 public typealias FilterClosure = (Event) -> Bool
 
 @available(iOS 13.0, *)

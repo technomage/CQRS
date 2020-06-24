@@ -25,6 +25,7 @@ import CloudKit
 /// just provides the sequencing that allows the merge.  Merges occurr in
 /// aggregators, and sharing of data in event stores.
 
+@available(iOS 13.0, *)
 public struct Seq : Equatable, Codable {
   public static var localID : CKRecord.ID?
   /// The time values for each known user
