@@ -13,7 +13,7 @@ public protocol DebugNamed {
   var name : String { get }
 }
 
-@available(iOS 13.0, *)
+@available(iOS 13.0, macOS 10.15, *)
 class LogSubscription<S> : Subscription where S : Subscriber, S.Input == Event {
   var id = UUID()
   var subscriber : S?
@@ -47,7 +47,7 @@ class LogSubscription<S> : Subscription where S : Subscriber, S.Input == Event {
   }
 }
 
-@available(iOS 13.0, *)
+@available(iOS 13.0, macOS 10.15, *)
 open class EventLog : Subscriber, Publisher {
   public typealias Output = Event
   public typealias Input = Event?

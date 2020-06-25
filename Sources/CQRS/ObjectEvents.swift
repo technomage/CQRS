@@ -9,12 +9,12 @@
 import Foundation
 import Combine
 
-@available(iOS 13.0, *)
+@available(iOS 13.0, macOS 10.15, *)
 public protocol ObjectEvent : Event {
   func apply<ET>(to obj : ET) -> ET
 }
 
-@available(iOS 13.0, *)
+@available(iOS 13.0, macOS 10.15, *)
 public struct SetEvent<E,T : Codable> : Event, Equatable, ObjectEvent, Codable {
 
   public static func == (lhs: SetEvent<E,T>, rhs: SetEvent<E,T>) -> Bool {

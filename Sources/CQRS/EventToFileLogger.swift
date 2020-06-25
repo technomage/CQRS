@@ -10,7 +10,7 @@ import Foundation
 import Combine
 import SwiftUI
 
-@available(iOS 13.0, *)
+@available(iOS 13.0, macOS 10.15, *)
 public class Progress : ObservableObject {
   @Published public var progress: Int = 0
   @Published public var total: Int = 0
@@ -19,14 +19,14 @@ public class Progress : ObservableObject {
   }
 }
 
-@available(iOS 13.0, *)
+@available(iOS 13.0, macOS 10.15, *)
 public enum Loading {
   case newFile
   case loadingFile
   case startLoadingFile
 }
 
-@available(iOS 13.0, *)
+@available(iOS 13.0, macOS 10.15, *)
 class FileLogSubscription<S> : Subscription where S : Subscriber, S.Input == Event {
   var id = UUID()
   var subscriber : S?
@@ -60,7 +60,7 @@ class FileLogSubscription<S> : Subscription where S : Subscriber, S.Input == Eve
   }
 }
 
-@available(iOS 13.0, *)
+@available(iOS 13.0, macOS 10.15, *)
 open class EventToFileLogger : Publisher {
   public typealias Output = Event
   public typealias Input = Event?

@@ -9,10 +9,10 @@
 import Foundation
 import Combine
 
-@available(iOS 13.0, *)
+@available(iOS 13.0, macOS 10.15, *)
 public typealias FilterClosure = (Event) -> Bool
 
-@available(iOS 13.0, *)
+@available(iOS 13.0, macOS 10.15, *)
 open class ObjectAggregator<E : Codable, R : Hashable&Codable> : Subscriber, Identifiable, Aggregator, ObservableObject {
   public typealias Input = Event
   public typealias Failure = Never

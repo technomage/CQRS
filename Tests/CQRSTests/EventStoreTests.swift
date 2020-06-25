@@ -10,7 +10,10 @@ import Combine
 import XCTest
 import CloudKit
 
-class CQRSTests: XCTestCase {
+@testable import CQRS
+
+@available(iOS 13.0, macOS 10.15, *)
+class EventStoreTests: XCTestCase {
   
   struct Ref {
     let id = UUID()

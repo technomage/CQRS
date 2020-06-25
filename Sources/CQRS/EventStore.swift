@@ -12,7 +12,7 @@ import Combine
 public protocol Aggregator {
 }
 
-@available(iOS 13.0, *)
+@available(iOS 13.0, macOS 10.15, *)
 open class EventStore : ObservableObject {
   var seq = Seq()
   @Published public var event : Event? = nil
@@ -47,7 +47,7 @@ open class EventStore : ObservableObject {
   }
 }
 
-@available(iOS 13.0, *)
+@available(iOS 13.0, macOS 10.15, *)
 open class UndoableEventStore : EventStore {
   public var undo : UndoManager?
   
@@ -79,10 +79,10 @@ open class UndoableEventStore : EventStore {
   }
 }
 
-@available(iOS 13.0, *)
+@available(iOS 13.0, macOS 10.15, *)
 public typealias Events = [Event]
 
-@available(iOS 13.0, *)
+@available(iOS 13.0, macOS 10.15, *)
 public protocol Event : Codable {
   var seq : Seq? { get set }
   var id : UUID { get }
