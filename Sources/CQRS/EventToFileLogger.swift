@@ -74,6 +74,7 @@ open class EventToFileLogger : Publisher {
   private var loadedProjects : [UUID] = []
   var downStream : Subscription? = nil
   var events : [Event] = []
+  var savedEvents : [UUID] = []
   
   public init?() {
     guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return nil }
@@ -103,8 +104,9 @@ open class EventToFileLogger : Publisher {
       .sink { e in
         do {
           EventToFileLogger.counter += 1
-          if e.status != .persisted {
+          if e.status != .persisted && e.status != .cached {
             self.events.append(e)
+            self.savedEvents.append(e.id)
             self.downStream?.request(Subscribers.Demand.unlimited)
             var fileHandle : FileHandle?
             if e.project == e.subject {
@@ -139,10 +141,10 @@ open class EventToFileLogger : Publisher {
   
   /// load events from the log file if it exists and has content, return true if events were actually loaded
   
-  public func loadEvents(store: UndoableEventStore, progress: Progress, showLoading: Binding<Bool>, onComplete: @escaping () -> Void) -> Loading {
+  public func loadEvents(store: UndoableEventStore, progress: Progress, showLoading: LoadingStatus, onComplete: @escaping () -> Void) -> Loading {
     return loadEvents(url: self.path!, store: store, progress: progress, showLoading: showLoading, onComplete: onComplete)
   }
-  public func loadEvents(for project: UUID, store: UndoableEventStore, progress: Progress, showLoading: Binding<Bool>, onComplete: @escaping () -> Void) -> Loading {
+  public func loadEvents(for project: UUID, store: UndoableEventStore, progress: Progress, showLoading: LoadingStatus, onComplete: @escaping () -> Void) -> Loading {
     guard !self.loadedProjects.contains(project) else {
       return .loadingFile
     }
@@ -150,7 +152,7 @@ open class EventToFileLogger : Publisher {
     let projectPath = self.docDirectory!.appendingPathComponent(project.uuidString)
     return loadEvents(url: projectPath, store: store, progress: progress, showLoading: showLoading, onComplete: onComplete)
   }
-  public func loadEvents(url: URL, store: UndoableEventStore, progress:Progress, showLoading: Binding<Bool>, onComplete: @escaping () -> Void) -> Loading {
+  public func loadEvents(url: URL, store: UndoableEventStore, progress:Progress, showLoading: LoadingStatus, onComplete: @escaping () -> Void) -> Loading {
     let fileHandle = try? FileHandle(forReadingFrom: url)
     guard fileHandle != nil else {
       return .newFile
@@ -178,7 +180,8 @@ open class EventToFileLogger : Publisher {
       DispatchQueue.main.async {
         NSLog("@@@@ Setting progress total to \(evts.count)")
         progress.total = evts.count
-        showLoading.wrappedValue = true
+        NSLog("@@@@ Showing loading screen")
+        showLoading.loading = true
       }
       NSLog("@@@@ \(evts.count) Events decoded")
       DispatchQueue.main.async {
@@ -189,7 +192,7 @@ open class EventToFileLogger : Publisher {
       } else {
         DispatchQueue.main.async {
           NSLog("@@@@ No Events loaded")
-          showLoading.wrappedValue = false
+          showLoading.loading = false
           onComplete()
         }
       }
@@ -197,11 +200,12 @@ open class EventToFileLogger : Publisher {
     return .startLoadingFile
   }
   
-  func processEvent(_ events:[Event], _ i:Int, store: UndoableEventStore, progress:Progress, showLoading: Binding<Bool>, onComplete: @escaping () -> Void) {
-    DispatchQueue.main.async {
+  func processEvent(_ events:[Event], _ i:Int, store: UndoableEventStore, progress:Progress, showLoading: LoadingStatus, onComplete: @escaping () -> Void) {
+    DispatchQueue.main.async { [self] in
       let limit = Swift.min(i+10, events.count)
 //      NSLog("@@@@ Loading events \(i) to \(limit)")
       for ind in i ..< limit {
+        savedEvents.append(events[ind].id)
         store.append(events[ind])
       }
       NSLog("@@@@ Setting progress to \(limit)")
@@ -211,7 +215,7 @@ open class EventToFileLogger : Publisher {
       } else {
         DispatchQueue.main.async {
           NSLog("@@@@ Events loaded")
-          showLoading.wrappedValue = false
+          showLoading.loading = false
           onComplete()
         }
       }

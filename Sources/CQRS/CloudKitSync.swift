@@ -107,7 +107,8 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
     op.queuePriority = Operation.QueuePriority.high
     op.recordFetchedBlock = { rec in
       let eventId = UUID(uuidString: rec[RecordSchema.eventID] as! String)!
-      if !self.events.contains(eventId) {
+      if !self.events.contains(eventId) && !(self.fileLogger?.savedEvents.contains(eventId) ?? false) {
+        NSLog("@@@@ ---- Cloud loading event \(self.events.count)")
         self.events.append(eventId)
 //        DispatchQueue.main.async {
 //          self.loadedCount += 1
