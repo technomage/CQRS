@@ -60,7 +60,8 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
             self.zone = zoneID
             self.saveQueuedEvents()
           } else {
-            // custom error handling
+            // TODO: custom error handling
+            NSLog("#### Error in creating custom CloudKit zone \(error)")
           }
           createZoneGroup.leave()
         }
