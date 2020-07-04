@@ -15,10 +15,17 @@ public class LoadingStatus: ObservableObject {
   
   public init() {
     cancel = $loading.sink { v in
-      NSLog("@@@@ Change in loading status")
+      NSLog("@@@@ Change in loading status \(self.loading)")
       if v {
         NSLog("@@@@ Showing loading to true")
       }
     }
   }
+}
+
+@available(iOS 13.0, macOS 10.15, *)
+public enum Loading {
+  case newFile
+  case loadingFile
+  case startLoadingFile
 }

@@ -23,7 +23,7 @@ open class ObjectAggregator<E : Codable, R : Hashable&Codable> : Subscriber, Ide
   @Published public var events : [Event] = []
   var sub : Subscription?
   public var store : UndoableEventStore?
-  public var childAggregators : [R:Aggregator] = [:]
+  @Published public var childAggregators : [R:Aggregator] = [:]
   
   public init() {
     // default init

@@ -10,12 +10,6 @@ import Foundation
 import Combine
 import SwiftUI
 
-@available(iOS 13.0, macOS 10.15, *)
-public enum Loading {
-  case newFile
-  case loadingFile
-  case startLoadingFile
-}
 
 @available(iOS 13.0, macOS 10.15, *)
 class FileLogSubscription<S> : Subscription where S : Subscriber, S.Input == Event {
@@ -171,8 +165,8 @@ open class EventToFileLogger : Publisher {
       DispatchQueue.main.async {
         NSLog("@@@@ Setting progress total to \(evts.count)")
         progress.total = evts.count
-        NSLog("@@@@ Showing loading screen")
-        showLoading.loading = true
+//        NSLog("@@@@ Showing loading screen")
+//        showLoading.loading = true
       }
       NSLog("@@@@ \(evts.count) Events decoded")
       DispatchQueue.main.async {
