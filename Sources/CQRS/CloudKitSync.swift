@@ -32,6 +32,7 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
   private var queue : [Event] = []
   
   @Published public var loadedCount = 0
+  @Published public var writtenCount = 0
   
   public init(zoneName : String) {
     self.zoneName = zoneName
@@ -109,7 +110,8 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
     op.recordFetchedBlock = { rec in
       let eventId = UUID(uuidString: rec[RecordSchema.eventID] as! String)!
       if !self.events.contains(eventId) && !(self.fileLogger?.savedEvents.contains(eventId) ?? false) {
-        NSLog("@@@@ ---- Cloud loading event \(self.events.count)")
+//        NSLog("@@@@ ---- Cloud loading event \(self.events.count)")
+        print("@@@@ ---- Cloud loading event \(self.events.count) \(eventId)")
         self.events.append(eventId)
 //        DispatchQueue.main.async {
 //          self.loadedCount += 1
@@ -126,10 +128,10 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
         self.fetchRecords(op, callback: callback)
       }else if error != nil {
         NSLog("#### Error in fetching records from zone \(self.zone): \(error)")
-      } else {
-        DispatchQueue.main.async {
-          self.loadedCount = self.events.count
-        }
+//      } else {
+//        DispatchQueue.main.async {
+//          self.loadedCount = self.events.count
+//        }
         callback()
       }
     }
@@ -188,7 +190,7 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
     if self.test(input) {
       self.events.append(input.id)
       DispatchQueue.main.async {
-        self.loadedCount += 1
+        self.writtenCount += 1
       }
       if self.zone != nil {
         do {
@@ -243,7 +245,7 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
     privateDB.save(rec) { rec, error in
       NSLog("@@@@ event record saved")
       DispatchQueue.main.async {
-        self.loadedCount = self.events.count
+        self.writtenCount = self.events.count
       }
     }
   }
