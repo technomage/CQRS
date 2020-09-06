@@ -19,9 +19,9 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
   var sub : Subscription?
   public var store : UndoableEventStore?
   public var fileLogger : EventToFileLogger?
-  @Published public var events : [UUID] = []
-  @Published public var userRecordID : CKRecord.ID?
-  @Published public var writtenEvents : [UUID] = []
+  public var events : [UUID] = []
+  public var userRecordID : CKRecord.ID?
+  public var writtenEvents : [UUID] = []
   
   public var projectRecords = [UUID : CKRecord.ID]()
   public var projectRecordsInProcess : [UUID] = []
@@ -33,8 +33,12 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
   public var zoneName : String
   private var queue : [Event] = []
   
+  private var pendingReads : [Event] = []
+  
   @Published public var loadedCount : Int = 0
   @Published public var writtenCount : Int = 0
+  
+  public var writeCancel : AnyCancellable?
   
   public init(zoneName : String) {
     NSLog("\n\n@@@@ Creating IcloudKitSync")
@@ -44,6 +48,12 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
     container = CKContainer.default()
     privateDB = container.privateCloudDatabase
     sharedDB = container.sharedCloudDatabase
+//    self.writeCancel = self.$writtenCount.receive(on: RunLoop.main).sink { v in
+//      print("@@@@ ///////// Writen Count: \(v)")
+//    }
+    self.writeCancel = objectWillChange.receive(on: RunLoop.main).sink {
+      print("@@@@ ///////// ICloud sync will change")
+    }
     let zoneID = CKRecordZone.ID(zoneName: zoneName, ownerName: CKCurrentUserDefaultName)
     let op = CKFetchRecordZonesOperation(recordZoneIDs: [zoneID])
     op.queuePriority = Operation.QueuePriority.high
@@ -140,7 +150,8 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
         self.loadRecords(forProject: project, callback: callback)
       }
     } else {
-      let query = CKQuery(recordType: RecordType.event.rawValue, predicate: NSPredicate(format: "%@ = \(EventSchema.projectID)", project.uuidString))
+      var query = CKQuery(recordType: RecordType.event.rawValue, predicate: NSPredicate(format: "%@ = \(EventSchema.projectID)", project.uuidString))
+      query.sortDescriptors = [sort]
       let operation = CKQueryOperation(query: query)
       operation.zoneID = self.zone
       self.fetchRecords(operation, callback: callback)
@@ -154,12 +165,15 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
         self.loadRecords(forProject: project, callback: callback)
       }
     } else {
-      let query = CKQuery(recordType: RecordType.event.rawValue, predicate: NSPredicate(format: "%@ = \(EventSchema.projectID) AND %@ = \(EventSchema.subjectID)", project.uuidString, project.uuidString))
+      var query = CKQuery(recordType: RecordType.event.rawValue, predicate: NSPredicate(format: "%@ = \(EventSchema.projectID) AND %@ = \(EventSchema.subjectID)", project.uuidString, project.uuidString))
+      query.sortDescriptors = [sort]
       let operation = CKQueryOperation(query: query)
       operation.zoneID = self.zone
       self.fetchRecords(operation, callback: callback)
     }
   }
+  
+  let sort = NSSortDescriptor(key: "seq", ascending: true)
   
   func fetchRecords(_ op: CKQueryOperation, callback: @escaping () -> Void) {
     op.queuePriority = Operation.QueuePriority.high
@@ -167,7 +181,7 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
       let eventId = UUID(uuidString: rec[EventSchema.eventID] as! String)!
       if !self.events.contains(eventId) && !(self.fileLogger?.savedEvents.contains(eventId) ?? false) {
 //        NSLog("@@@@ ---- Cloud loading event \(self.events.count)")
-        print("@@@@ ---- Cloud loading event \(self.events.count) \(eventId)")
+        print("@@@@ ---- Cloud loading event \(self.events.count) \(eventId) \(rec[EventSchema.seq] as! String) known events: \(self.events)")
         self.events.append(eventId)
         // deserialize event from icloud and add to store if not previously seen by it
         let typeName = rec[EventSchema.eventType] as! String
@@ -178,10 +192,7 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
           if event.id != eventId {
             print("########## Event read from icloud without proper id #############")
           }
-          DispatchQueue.main.async {
-            self.store?.append(event)
-            self.loadedCount += 1
-          }
+          self.pendingReads.append(event)
         } catch {
           let json : String = String(data: data, encoding: .utf8)!
           NSLog("#### Error \(error) in loading event \(typeName) \(json)")
@@ -198,7 +209,19 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
         NSLog("#### Error in fetching records from zone \(String(describing: self.zone)): \(String(describing: error))")
       } else {
         print("@@@@ calling callback on fetchRecords")
-        callback()
+        let sorted = self.pendingReads.sorted { (a,b) -> Bool in
+          return a.seq!.sortableString < b.seq!.sortableString
+        }
+        self.pendingReads = []
+        DispatchQueue.main.async {
+          for e in sorted {
+            print("@@@@ ==== Processing sorted event \(e.id.uuidString) \(e.seq!.sortableString)")
+            self.store?.append(e)
+          }
+          print("@@@@ |||| Updating loaded count by \(sorted.count)")
+          self.loadedCount += sorted.count
+          callback()
+        }
       }
     }
     print("@@@@ Starting a new query to fetch events")
