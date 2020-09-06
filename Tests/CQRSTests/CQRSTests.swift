@@ -51,7 +51,6 @@ final class CQRSTests: XCTestCase {
     XCTAssertEqual(10_001, cnt, "Count of events not as expected")
     sub.cancel()
     var cnt2 = 0
-    var cnt3 = 0
     let sub2 = store.log.sink { e in
       cnt2 += 1
     }

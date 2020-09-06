@@ -13,10 +13,15 @@ public enum RecordType : String, Codable {
   case event
 }
 
-public struct RecordSchema {
+public struct EventSchema {
   public static let eventData = "event"
   public static let eventType = "eventType"
   public static let seq = "seq"
   public static let eventID = "eventID"
   public static let projectID = "projectID"
+  public static let subjectID = "subjectID"
+}
+
+public struct ProjectRootSchema {
+  public static let name = "name"
 }

@@ -126,10 +126,10 @@ open class EventToFileLogger : Publisher {
   
   /// load events from the log file if it exists and has content, return true if events were actually loaded
   
-  public func loadEvents(store: UndoableEventStore, progress: Progress, showLoading: LoadingStatus, onComplete: @escaping () -> Void) -> Loading {
+  public func loadEvents(store: UndoableEventStore, progress: Progress, showLoading: LoadingStatus, onComplete: @escaping (_ : Loading) -> Void) -> Loading {
     return loadEvents(url: self.path!, store: store, progress: progress, showLoading: showLoading, onComplete: onComplete)
   }
-  public func loadEvents(for project: UUID, store: UndoableEventStore, progress: Progress, showLoading: LoadingStatus, onComplete: @escaping () -> Void) -> Loading {
+  public func loadEvents(for project: UUID, store: UndoableEventStore, progress: Progress, showLoading: LoadingStatus, onComplete: @escaping (_ : Loading) -> Void) -> Loading {
     guard !self.loadedProjects.contains(project) else {
       return .loadingFile
     }
@@ -137,9 +137,10 @@ open class EventToFileLogger : Publisher {
     let projectPath = self.docDirectory!.appendingPathComponent(project.uuidString)
     return loadEvents(url: projectPath, store: store, progress: progress, showLoading: showLoading, onComplete: onComplete)
   }
-  public func loadEvents(url: URL, store: UndoableEventStore, progress:Progress, showLoading: LoadingStatus, onComplete: @escaping () -> Void) -> Loading {
+  public func loadEvents(url: URL, store: UndoableEventStore, progress:Progress, showLoading: LoadingStatus, onComplete: @escaping (_ : Loading) -> Void) -> Loading {
     let fileHandle = try? FileHandle(forReadingFrom: url)
     guard fileHandle != nil else {
+      onComplete(.newFile)
       return .newFile
     }
     DispatchQueue.global(qos: .background).async {
@@ -178,14 +179,14 @@ open class EventToFileLogger : Publisher {
         DispatchQueue.main.async {
           NSLog("@@@@ No Events loaded")
           showLoading.loading = false
-          onComplete()
+          onComplete(.loadingFile)
         }
       }
     }
     return .startLoadingFile
   }
   
-  func processEvent(_ events:[Event], _ i:Int, store: UndoableEventStore, progress:Progress, showLoading: LoadingStatus, onComplete: @escaping () -> Void) {
+  func processEvent(_ events:[Event], _ i:Int, store: UndoableEventStore, progress:Progress, showLoading: LoadingStatus, onComplete: @escaping (_ : Loading) -> Void) {
     DispatchQueue.main.async { [self] in
       let limit = Swift.min(i+10, events.count)
 //      NSLog("@@@@ Loading events \(i) to \(limit)")
@@ -201,7 +202,7 @@ open class EventToFileLogger : Publisher {
         DispatchQueue.main.async {
           NSLog("@@@@ Events loaded")
           showLoading.loading = false
-          onComplete()
+          onComplete(.loadingFile)
         }
       }
     }
