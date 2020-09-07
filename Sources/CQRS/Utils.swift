@@ -25,13 +25,14 @@ public class Utils {
     }
   }
   
-  public static func resetICloud(zoneName : String) {
+  public static func resetICloud(zoneName : String, callback: @escaping ([CKRecordZone]?, [CKRecordZone.ID]?, Error?) -> Void) {
     print("\n\n@@@@ Resetting iCloud\n\n")
     let container = CKContainer.default()
     let privateDB = container.privateCloudDatabase
     let zoneID = CKRecordZone.ID(zoneName: zoneName, ownerName: CKCurrentUserDefaultName)
     let op = CKModifyRecordZonesOperation()
     op.recordZoneIDsToDelete = [zoneID]
+    op.modifyRecordZonesCompletionBlock = callback
     privateDB.add(op)
   }
 }

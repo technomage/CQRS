@@ -21,6 +21,7 @@ open class ObjectAggregator<E : Codable, R : Hashable&Codable> : Subscriber, Ide
   public var filter : FilterClosure = { e in true }
   @Published public var obj : E?
   @Published public var events : [Event] = []
+  public var eventIds : Set<UUID> = []
   var sub : Subscription?
   public var store : UndoableEventStore?
   @Published public var childAggregators : [R:Aggregator] = [:]
@@ -77,7 +78,7 @@ open class ObjectAggregator<E : Codable, R : Hashable&Codable> : Subscriber, Ide
   }
   
   public func test(_ input : Event) -> Bool {
-    return !self.events.contains(where: { e in e.id == input.id}) && self.filter(input)
+    return !self.eventIds.contains(input.id) && self.filter(input)
   }
   
   public func receive(_ input: Event) -> Subscribers.Demand {
@@ -85,6 +86,7 @@ open class ObjectAggregator<E : Codable, R : Hashable&Codable> : Subscriber, Ide
       if let evt = input as? ListChange<E,R> {
 //        NSLog("@@@@ List event applied to object aggregator \(input) agg id: \(self.id)")
         events.append(evt)
+        eventIds.insert(evt.id)
         switch evt.action {
           case .create(_, let o) :
             self.obj = o

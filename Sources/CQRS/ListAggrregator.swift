@@ -30,6 +30,7 @@ open class ListAggregator<E : ListEntry, R : Hashable&Codable> : Subscriber, Obs
 
   @Published public var list : [E] = []
   @Published public var events : [LE] = []
+  public var eventIds : Set<UUID> = []
   var sub : Subscription?
   public var store : UndoableEventStore?
   public var childConfig : ChildAggregatorClosure?
@@ -212,7 +213,7 @@ open class ListAggregator<E : ListEntry, R : Hashable&Codable> : Subscriber, Obs
   
   /// Filter events against the role and filter for the aggregator
   public func filterEvent(_ input: LE) -> Bool {
-    guard !self.events.contains(where: { e in e.id == input.id}) else {return false}
+    guard !self.eventIds.contains(input.id) else {return false}
 //    NSLog("\n\n@@@@ Filter list event \(input) for role: \(role) in \(name)\n\n")
     guard self.role == nil || self.role == input.role else {return false}
     guard self.filter != nil else {return true}
@@ -223,6 +224,7 @@ open class ListAggregator<E : ListEntry, R : Hashable&Codable> : Subscriber, Obs
   public func receive(_ input: LE) -> Subscribers.Demand {
     if self.filterEvent(input) {
       events.append(input)
+      eventIds.insert(input.id)
       switch input.action {
         case .create(let after, let obj) :
 //          NSLog("\n\n@@@@ Inserting object in \(String(describing: name)) \(String(describing: role)) of \(String(describing: parent)) list \(obj) has child config: \(self.childConfig != nil)\n\n")
@@ -232,9 +234,9 @@ open class ListAggregator<E : ListEntry, R : Hashable&Codable> : Subscriber, Obs
           oa.store = self.store
           self.store?.log.subscribe(oa)
           self.objAggs[obj.id] = oa
-          let afterIndex = list.firstIndex { d in
-            d.id == after
-            }
+          let afterIndex = (after == nil ? nil : list.firstIndex { d in
+            return d.id == after
+          })
           self.list.insert(obj, at: afterIndex != nil ? afterIndex!+1 : 0)
           self.objCancels[obj.id] = oa.$obj
             .receive(on: RunLoop.main).sink { o in
