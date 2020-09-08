@@ -188,7 +188,7 @@ open class EventToFileLogger : Publisher {
   
   func processEvent(_ events:[Event], _ i:Int, store: UndoableEventStore, progress:Progress, showLoading: LoadingStatus, onComplete: @escaping (_ : Loading) -> Void) {
     DispatchQueue.main.async { [self] in
-      let limit = Swift.min(i+10, events.count)
+      let limit = Swift.min(i+100, events.count)
 //      NSLog("@@@@ Loading events \(i) to \(limit)")
       for ind in i ..< limit {
         savedEvents.append(events[ind].id)

@@ -10,7 +10,9 @@ import Foundation
 import Combine
 
 @available(iOS 13.0, macOS 10.15, *)
-open class IndexedAggregator<E : ListEntry, R : Hashable&Codable> : ListAggregator<E,R> {
+open class IndexedAggregator<E : ListEntry, R : Hashable&Codable> : ListAggregator<E,R>
+  where E : Identifiable, E.ID == UUID
+{
   public var dict : Dictionary<UUID, E> {
     get {
       var result : [UUID:E] = [:]

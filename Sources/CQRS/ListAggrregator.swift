@@ -18,7 +18,9 @@ public protocol NamedListEntry : ListEntry {
 }
 
 @available(iOS 13.0, macOS 10.15, *)
-open class ListAggregator<E : ListEntry, R : Hashable&Codable> : Subscriber, ObservableObject, Aggregator {
+open class ListAggregator<E : ListEntry, R : Hashable&Codable> : Subscriber, Identifiable, ObservableObject, Aggregator
+  where E : Identifiable, E.ID == UUID
+{
   public typealias Input = ListChange<E,R>
   public typealias Failure = Never
   public typealias LE = ListChange<E,R>
@@ -229,7 +231,7 @@ open class ListAggregator<E : ListEntry, R : Hashable&Codable> : Subscriber, Obs
         case .create(let after, let obj) :
 //          NSLog("\n\n@@@@ Inserting object in \(String(describing: name)) \(String(describing: role)) of \(String(describing: parent)) list \(obj) has child config: \(self.childConfig != nil)\n\n")
           let oa = self.childConfig?(store!, self, obj) ??
-            ObjectAggregator<E,R>(obj: obj, store: self.store) { e in e.subject == obj.id}
+            ObjectAggregator<E,R>(obj: obj, store: self.store)
           // NSLog("@@@@ Child aggregator has children: \(oa.childAggregators)")
           oa.store = self.store
           self.store?.log.subscribe(oa)
