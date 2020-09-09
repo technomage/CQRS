@@ -143,6 +143,10 @@ open class EventToFileLogger : Publisher {
       onComplete(.newFile)
       return .newFile
     }
+    DispatchQueue.main.async {
+      showLoading.loading = .loading
+      progress.total = 100 // placeholder to keep it up until we have a real count
+    }
     DispatchQueue.global(qos: .background).async {
       NSLog("@@@@ Reading events from file: "+url.path)
       fileHandle!.seek(toFileOffset:0)
