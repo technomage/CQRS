@@ -9,19 +9,21 @@
 import Foundation
 import Combine
 
-public protocol ListEntry : Equatable, Codable {
-  var id : UUID { get }
+public protocol ListEntry : Equatable, WithID {
 }
 
 public protocol NamedListEntry : ListEntry {
   var name : String { get set }
 }
 
+public protocol RoleEnum {
+  var rawValue : String { get }
+}
+
 @available(iOS 13.0, macOS 10.15, *)
-open class ListAggregator<E : ListEntry, R : Hashable&Codable> : Subscriber, Identifiable, ObservableObject, Aggregator
-  where E : Identifiable, E.ID == UUID
+open class ListAggregator<E : ListEntry, R : Hashable&Codable&RoleEnum> : Subscriber, Identifiable, ObservableObject, Aggregator, DispatchKeys where E : Identifiable, E.ID == UUID
 {
-  public typealias Input = ListChange<E,R>
+  public typealias Input = Event
   public typealias Failure = Never
   public typealias LE = ListChange<E,R>
   public typealias ListFilterClosure = (LE) -> Bool
@@ -29,6 +31,7 @@ open class ListAggregator<E : ListEntry, R : Hashable&Codable> : Subscriber, Ide
   
   public var role : R?
   public var filter : ListFilterClosure?
+  public var parent : UUID?
 
   @Published public var list : [E] = []
   @Published public var events : [LE] = []
@@ -38,7 +41,6 @@ open class ListAggregator<E : ListEntry, R : Hashable&Codable> : Subscriber, Ide
   public var childConfig : ChildAggregatorClosure?
   public var objAggs = Dictionary<UUID, ObjectAggregator<E,R>>()
   var objCancels = Dictionary<UUID, AnyCancellable>()
-  public var parent : UUID?
   public var name : String?
   
   public init() {
@@ -124,11 +126,15 @@ open class ListAggregator<E : ListEntry, R : Hashable&Codable> : Subscriber, Ide
     self.filter = filter
   }
   
+  open var dispatchKeys : [String]? {
+    return ["\(self.parent?.uuidString ?? "")::\(self.role?.rawValue ?? "")"]
+  }
+  
   public func subscribeToStore() {
     guard self.store != nil else {return}
     self.store!.log
-      .filter({e in e is ListChange<E,R>})
-      .map{e in e as! ListChange<E,R>}
+//      .filter({e in e is ListChange<E,R>})
+//      .map{e in e as! ListChange<E,R>}
       .subscribe(self)
   }
   
@@ -220,6 +226,15 @@ open class ListAggregator<E : ListEntry, R : Hashable&Codable> : Subscriber, Ide
     guard self.role == nil || self.role == input.role else {return false}
     guard self.filter != nil else {return true}
     return self.filter!(input)
+  }
+  
+  /// For direct receive lists, process one event at a time as provided to the list directly
+  public func receive(_ event : Event) -> Subscribers.Demand {
+    if event is ListChange<E,R> {
+      let le = event as! ListChange<E,R>
+      let _ = self.receive(le)
+    }
+    return Subscribers.Demand.unlimited
   }
   
   /// Receive a new event for the aggregator

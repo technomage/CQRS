@@ -8,17 +8,20 @@
 import Foundation
 import Combine
 
+public enum LoadingState {
+  case new
+  case loading
+  case done
+}
+
 @available(iOS 13.0, macOS 10.15, *)
 public class LoadingStatus: ObservableObject {
-  @Published public var loading = false
-  public var cancel : AnyCancellable? = nil
-  
+  @Published public var loading : LoadingState = .new
+  @Published public var showLoading = false
+  var cancel : AnyCancellable?
   public init() {
-    cancel = $loading.sink { v in
-      NSLog("@@@@ Change in loading status \(self.loading)")
-      if v {
-        NSLog("@@@@ Showing loading to true")
-      }
+    self.cancel = self.$loading.sink { l in
+      self.showLoading = l == .loading
     }
   }
 }

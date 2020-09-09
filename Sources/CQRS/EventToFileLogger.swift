@@ -178,7 +178,7 @@ open class EventToFileLogger : Publisher {
       } else {
         DispatchQueue.main.async {
           NSLog("@@@@ No Events loaded")
-          showLoading.loading = false
+          showLoading.loading = .done
           onComplete(.loadingFile)
         }
       }
@@ -201,7 +201,7 @@ open class EventToFileLogger : Publisher {
       } else {
         DispatchQueue.main.async {
           NSLog("@@@@ Events loaded")
-          showLoading.loading = false
+          showLoading.loading = .done
           onComplete(.loadingFile)
         }
       }

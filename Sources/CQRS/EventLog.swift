@@ -14,6 +14,11 @@ public protocol DebugNamed {
 }
 
 @available(iOS 13.0, macOS 10.15, *)
+public protocol EventSubscriber {
+  func receive(event:Event)
+}
+
+@available(iOS 13.0, macOS 10.15, *)
 class LogSubscription<S> : Subscription where S : Subscriber, S.Input == Event {
   var id = UUID()
   var subscriber : S?
@@ -47,6 +52,10 @@ class LogSubscription<S> : Subscription where S : Subscriber, S.Input == Event {
   }
 }
 
+public protocol DispatchKeys {
+  var dispatchKeys : [String]? { get }
+}
+
 @available(iOS 13.0, macOS 10.15, *)
 open class EventLog : Subscriber, Publisher {
   public typealias Output = Event
@@ -54,14 +63,28 @@ open class EventLog : Subscriber, Publisher {
   public typealias Failure = Never
   
   var downStreams : [Subscription] = []
+  var dsKeyed : [String:[Subscription]] = [:]
   var upStream : Subscription?
   var events : Events = []
   
   public func receive<S>(subscriber: S) where S : Subscriber, EventLog.Failure == S.Failure, EventLog.Output == S.Input {
 //    NSLog("@@@@ Subscription to log by \(subscriber) with \(downStreams.count) subscriptions current")
-    let subs : LogSubscription<S> = LogSubscription<S>(subscriber: subscriber, log: self)
-    downStreams.append(subs)
-    subscriber.receive(subscription: subs)
+    let sub : LogSubscription<S> = LogSubscription<S>(subscriber: subscriber, log: self)
+    if subscriber is DispatchKeys {
+      let keys = (subscriber as! DispatchKeys).dispatchKeys
+      if keys != nil {
+        for k in keys! {
+          var subs = dsKeyed[k] ?? []
+          subs.append(sub)
+          dsKeyed[k] = subs
+        }
+      } else {
+        downStreams.append(sub)
+      }
+    } else {
+      downStreams.append(sub)
+    }
+    subscriber.receive(subscription: sub)
   }
   
   public func receive(subscription: Subscription) {
@@ -80,7 +103,23 @@ open class EventLog : Subscriber, Publisher {
       // The following feels like a kludge, since we do not know how much
       // demand is remaining
       for ds in downStreams {
-        ds.request(Subscribers.Demand.unlimited)
+        if ds is EventSubscriber {
+          (ds as! EventSubscriber).receive(event: inp)
+        } else {
+          ds.request(Subscribers.Demand.unlimited)
+        }
+      }
+      if inp is DispatchKeys {
+        let keys = (inp as! DispatchKeys).dispatchKeys
+        for k in keys ?? [] {
+          for ds in dsKeyed[k] ?? [] {
+            if ds is EventSubscriber {
+              (ds as! EventSubscriber).receive(event: inp)
+            } else {
+              ds.request(Subscribers.Demand.unlimited)
+            }
+          }
+        }
       }
     }
     return Subscribers.Demand.unlimited;

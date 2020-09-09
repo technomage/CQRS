@@ -10,16 +10,33 @@ import Foundation
 import Combine
 
 @available(iOS 13.0, macOS 10.15, *)
-public protocol ListEvent : Event {
+public protocol ListEvent : Event, DispatchKeys {
   associatedtype R : Equatable,Codable
   var parent : UUID? { get }
   var role : R? { get }
 }
 
+public protocol WithID : Codable {
+  var id : UUID { get }
+}
+
 @available(iOS 13.0, macOS 10.15, *)
-public struct ListChange<E : Codable,R : Equatable&Codable> : Equatable, ListEvent, Codable {
+public struct ListChange<E : WithID,R : Equatable&Codable&RoleEnum> : Equatable, ListEvent, Codable {
   public static func == (lhs: ListChange<E,R>, rhs: ListChange<E,R>) -> Bool {
     return lhs.seq == rhs.seq && lhs.id == rhs.id && lhs.subject == rhs.subject && lhs.parent == rhs.parent && lhs.status == rhs.status && lhs.undoType == rhs.undoType && lhs.role == rhs.role
+  }
+  
+  public var dispatchKeys : [String]? {
+    var keys = ["\(self.parent?.uuidString ?? "")::\(self.role?.rawValue ?? "")"]
+    switch self.action {
+      case .create(_, let o):
+        keys.append(o.id.uuidString)
+      case .delete(_, let o):
+        keys.append(o.id.uuidString)
+      default:
+        break // Nothing to do
+    }
+    return keys
   }
   
   public enum ListAction : Codable {

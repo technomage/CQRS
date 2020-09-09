@@ -10,7 +10,7 @@ import Foundation
 import Combine
 
 @available(iOS 13.0, macOS 10.15, *)
-public protocol ObjectEvent : Event {
+public protocol ObjectEvent : Event, DispatchKeys {
   func apply<ET>(to obj : ET) -> ET
 }
 
@@ -37,6 +37,10 @@ public struct SetEvent<E,T : Codable> : Event, Equatable, ObjectEvent, Codable {
     self.path = path
     self.value = value
     self.prior = prior
+  }
+  
+  public var dispatchKeys : [String]? {
+    return [self.subject.uuidString]
   }
   
   public func reverse() -> Event {

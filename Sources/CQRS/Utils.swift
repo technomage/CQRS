@@ -31,6 +31,7 @@ public class Utils {
     let privateDB = container.privateCloudDatabase
     let zoneID = CKRecordZone.ID(zoneName: zoneName, ownerName: CKCurrentUserDefaultName)
     let op = CKModifyRecordZonesOperation()
+    op.queuePriority = .high
     op.recordZoneIDsToDelete = [zoneID]
     op.modifyRecordZonesCompletionBlock = callback
     privateDB.add(op)

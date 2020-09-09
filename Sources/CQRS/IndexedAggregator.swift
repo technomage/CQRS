@@ -10,7 +10,7 @@ import Foundation
 import Combine
 
 @available(iOS 13.0, macOS 10.15, *)
-open class IndexedAggregator<E : ListEntry, R : Hashable&Codable> : ListAggregator<E,R>
+open class IndexedAggregator<E : ListEntry, R : Hashable&Codable&RoleEnum> : ListAggregator<E,R>
   where E : Identifiable, E.ID == UUID
 {
   public var dict : Dictionary<UUID, E> {
@@ -95,8 +95,8 @@ open class IndexedAggregator<E : ListEntry, R : Hashable&Codable> : ListAggregat
     self.childConfig = config
   }
   
-  public convenience init(store : UndoableEventStore) {
-    self.init()
+  public init(store : UndoableEventStore) {
+    super.init()
     self.store = store
     self.subscribeToStore()
   }
