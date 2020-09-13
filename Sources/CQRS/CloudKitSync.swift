@@ -10,12 +10,22 @@ import Foundation
 import Combine
 import CloudKit
 
+public enum SyncStatus : String {
+  case starting
+  case creatingZone
+  case zoneExists
+  case connected
+  case offline
+  case error
+}
+
 @available(iOS 13.0, macOS 10.15, *)
 public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObject {
   public typealias Input = Event
   public typealias Failure = Never
 
   public var id = UUID()
+  @Published public var status : SyncStatus = .starting
   var sub : Subscription?
   public var store : UndoableEventStore?
   public var fileLogger : EventToFileLogger?
@@ -29,7 +39,6 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
   public var privateDB : CKDatabase
   public var sharedDB : CKDatabase
   public var zone : CKRecordZone.ID?
-  public var root : CKRecord.ID?
   public var zoneName : String
   private var queue : [Event] = []
   
@@ -54,7 +63,10 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
 //    self.writeCancel = objectWillChange.receive(on: RunLoop.main).sink {
 //      print("@@@@ ///////// ICloud sync will change")
 //    }
-    let zoneID = CKRecordZone.ID(zoneName: zoneName, ownerName: CKCurrentUserDefaultName)
+  }
+  
+  func ensureZoneExists(completion: @escaping () -> Void) {
+    let zoneID = CKRecordZone.ID(zoneName: self.zoneName, ownerName: CKCurrentUserDefaultName)
     let op = CKFetchRecordZonesOperation(recordZoneIDs: [zoneID])
     op.queuePriority = Operation.QueuePriority.high
     op.fetchRecordZonesCompletionBlock = { zones, error in
@@ -62,12 +74,15 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
         NSLog("@@@@ Received data on \(zones?.count ?? 0) zones \(String(describing: zones?.keys))")
         print("@@@@ Received data on \(zones?.count ?? 0) zones \(String(describing: zones?.keys))")
         self.zone = zoneID
+        self.status = .zoneExists
+        completion()
         self.saveQueuedEvents()
       } else {
         NSLog("@@@@ Custom zone not found, creating it")
+        self.status = .creatingZone
         let createZoneGroup = DispatchGroup()
         createZoneGroup.enter()
-        let zoneID = CKRecordZone.ID(zoneName: zoneName, ownerName: CKCurrentUserDefaultName)
+        let zoneID = CKRecordZone.ID(zoneName: self.zoneName, ownerName: CKCurrentUserDefaultName)
         let customZone = CKRecordZone(zoneID: zoneID)
         let createZoneOperation = CKModifyRecordZonesOperation(recordZonesToSave: [customZone], recordZoneIDsToDelete: [] )
         createZoneOperation.modifyRecordZonesCompletionBlock = { (saved, deleted, error) in
@@ -75,11 +90,16 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
             NSLog("@@@@ Custom zone created \(zoneID)")
             print("@@@@ Custom zone created \(zoneID)")
             self.zone = zoneID
+            self.status = .zoneExists
+            completion()
             self.saveQueuedEvents()
           } else {
             // TODO: custom error handling
             NSLog("#### Error in creating custom CloudKit zone \(String(describing: error))")
             print("#### Error in creating custom CloudKit zone \(String(describing: error))")
+            DispatchQueue.main.async {
+              self.status = .error
+            }
           }
           createZoneGroup.leave()
         }
@@ -103,6 +123,7 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
           try self.processEvent(e)
         } catch {
           // Error handling
+          self.status = .error
         }
       }
     }
@@ -136,6 +157,9 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
         let op = CKQueryOperation(cursor: recs!)
         self.fetchRoots(op, callback: callback)
       } else if error != nil {
+        DispatchQueue.main.async {
+          self.status = .error
+        }
         NSLog("#### Error in fetching roots from zone \(String(describing: self.zone)): \(String(describing: error))")
       }
       NSLog("@@@@ loaded \(self.projectRecords.count) roots")
@@ -150,7 +174,7 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
         self.loadRecords(forProject: project, callback: callback)
       }
     } else {
-      var query = CKQuery(recordType: RecordType.event.rawValue, predicate: NSPredicate(format: "%@ = \(EventSchema.projectID)", project.uuidString))
+      let query = CKQuery(recordType: RecordType.event.rawValue, predicate: NSPredicate(format: "%@ = \(EventSchema.projectID)", project.uuidString))
       query.sortDescriptors = [sort]
       let operation = CKQueryOperation(query: query)
       operation.zoneID = self.zone
@@ -165,7 +189,7 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
         self.loadRecords(forProject: project, callback: callback)
       }
     } else {
-      var query = CKQuery(recordType: RecordType.event.rawValue, predicate: NSPredicate(format: "%@ = \(EventSchema.projectID) AND %@ = \(EventSchema.subjectID)", project.uuidString, project.uuidString))
+      let query = CKQuery(recordType: RecordType.event.rawValue, predicate: NSPredicate(format: "%@ = \(EventSchema.projectID) AND %@ = \(EventSchema.subjectID)", project.uuidString, project.uuidString))
       query.sortDescriptors = [sort]
       let operation = CKQueryOperation(query: query)
       operation.zoneID = self.zone
@@ -196,6 +220,7 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
         } catch {
           let json : String = String(data: data, encoding: .utf8)!
           NSLog("#### Error \(error) in loading event \(typeName) \(json)")
+          self.status = .error
         }
       }
     }
@@ -207,6 +232,7 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
         self.fetchRecords(op, callback: callback)
       } else if error != nil {
         NSLog("#### Error in fetching records from zone \(String(describing: self.zone)): \(String(describing: error))")
+        self.status = .error
       } else {
 //        print("@@@@ calling callback on fetchRecords")
         let sorted = self.pendingReads.sorted { (a,b) -> Bool in
@@ -241,20 +267,28 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
     
     container.requestApplicationPermission(.userDiscoverability) { (status, error) in
       guard error == nil else {
-        NSLog("#### Failed to get user discovery permission")
+        NSLog("#### Failed to get user discovery permission \(String(describing: error))")
+        DispatchQueue.main.async {
+          self.status = .error
+        }
         return }
       container.accountStatus { accountStatus, error in
         guard error == nil else {
-          NSLog("#### Failed to get account status")
+          NSLog("#### Failed to get account status \(String(describing: error))")
+          DispatchQueue.main.async {
+            self.status = .error
+          }
           return }
         if accountStatus == .available {
           container.fetchUserRecordID { (recordID, error) in
             guard let userRecordID = recordID else {
               NSLog("@@@@ No user ID available")
+              self.status = .offline
               return }
             container.discoverUserIdentity(withUserRecordID: userRecordID) { (userID, error) in
               if error != nil {
                 print("Error in getting user info \(String(describing: error))")
+                self.status = .error
               } else if userID != nil {
                 print("User record ID: \(userRecordID)")
                 print("User has account: \(userID!.hasiCloudAccount)")
@@ -262,17 +296,21 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
                 print("User name: \(nam.givenName ?? "") \(nam.familyName ?? "")")
                 print("Contacts: \(userID!.contactIdentifiers)")
               }
-              self.loadProjectRoots() { p in
-                // Load project defining events
-                self.loadProjectRecords(forProject: p) {}
-              }
-              DispatchQueue.main.async {
-                self.userRecordID = userRecordID
-                Seq.localID = userRecordID
-                NSLog("User record id \(userRecordID)")
+              self.ensureZoneExists {
+                self.loadProjectRoots() { p in
+                  // Load project defining events
+                  self.loadProjectRecords(forProject: p) {}
+                }
+//                DispatchQueue.main.async {
+                  self.userRecordID = userRecordID
+                  Seq.localID = userRecordID
+                  NSLog("User record id \(userRecordID)")
+//                }
               }
             }
           }
+        } else {
+          self.status = .offline
         }
       }
     }
@@ -335,6 +373,9 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
         guard error == nil else {
           NSLog("#### Error in saving project root to icloud \(input.project) event \(input.id): \(String(describing: error))")
           print("#### Error in saving project root to icloud \(input.project) event \(input.id): \(String(describing: error))")
+          DispatchQueue.main.async {
+            self.status = .error
+          }
           return
         }
         let root = roots![0]
@@ -352,6 +393,7 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
           // Error handling
           NSLog("#### Error in saving event to icloud \(input.project)")
           print("#### Error in saving event to icloud \(input.project)")
+          self.status = .error
         }
         
       }
@@ -385,6 +427,7 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
     op.modifyRecordsCompletionBlock = { _, _, error in
       guard error == nil else {
         NSLog("#### Error in saving event \(String(describing: error))")
+        self.status = .error
         return}
       DispatchQueue.main.async {
         self.updateWriteCount(event: event)

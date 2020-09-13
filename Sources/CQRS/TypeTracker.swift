@@ -19,11 +19,11 @@ public struct TypeTracker {
     classes[key] = cls
   }
   
-  static func typeFromKey(_ key: String) -> Any.Type? {
+  public static func typeFromKey(_ key: String) -> Any.Type? {
     return TypeTracker.classes[key]
   }
   
-  static func keyFromType(_ cls: Any.Type) -> String? {
+  public static func keyFromType(_ cls: Any.Type) -> String? {
     for k in classes.keys {
       if classes[k] == cls {
         return k

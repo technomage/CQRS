@@ -123,7 +123,7 @@ open class EventToFileLogger : Publisher {
         }
       }
   }
-  
+
   /// load events from the log file if it exists and has content, return true if events were actually loaded
   
   public func loadEvents(store: UndoableEventStore, progress: Progress, showLoading: LoadingStatus, onComplete: @escaping (_ : Loading) -> Void) -> Loading {
