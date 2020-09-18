@@ -99,7 +99,7 @@ open class EventLog : Subscriber, Publisher {
         evt.status = .queued
       }
       events.append(evt)
-      print("@@@@ Event \(inp.id) received by log")
+      let _ = print("@@@@ Event \(inp.id.uuidString) received by log")
       // The following feels like a kludge, since we do not know how much
       // demand is remaining
       for ds in downStreams {
