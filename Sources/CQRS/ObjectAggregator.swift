@@ -13,7 +13,7 @@ import Combine
 public typealias FilterClosure = (Event) -> Bool
 
 @available(iOS 13.0, macOS 10.15, *)
-open class ObjectAggregator<E : WithID, R : Hashable&Codable&RoleEnum> : Subscriber, Identifiable, Aggregator, ObservableObject, DispatchKeys where E : Identifiable, E.ID == UUID
+open class ObjectAggregator<E : WithID&Equatable, R : Hashable&Codable&RoleEnum> : Subscriber, Identifiable, Aggregator, ObservableObject, DispatchKeys where E : Identifiable, E.ID == UUID
 {
   public typealias Input = Event
   public typealias Failure = Never
@@ -83,8 +83,11 @@ open class ObjectAggregator<E : WithID, R : Hashable&Codable&RoleEnum> : Subscri
       if let evt = input as? ObjectEvent {
         events.append(evt)
         eventIds.insert(evt.id)
+        let eold = obj
         self.obj = evt.apply(to: obj)
-//        NSLog("@@@@ Updated object in aggregator \(self.obj) for: \(input)\n\n")
+//        if eold != self.obj {
+//          NSLog("@@@@ Updated object in aggregator \(self.obj) for: \(input)\n\n")
+//        }
       }
     }
     return Subscribers.Demand.unlimited
