@@ -29,18 +29,18 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
   var sub : Subscription?
   public var store : UndoableEventStore?
   public var fileLogger : EventToFileLogger?
-  public var events : Set<UUID> = []
+  public var events = Set<UUID>()
   public var userRecordID : CKRecord.ID?
-  public var writtenEvents : [UUID] = []
+  public var writtenEvents = Set<UUID>()
   
   public var projectRecords = [UUID : CKRecord.ID]()
-  public var projectRecordsInProcess : [UUID] = []
+  public var projectRecordsInProcess = Set<UUID>()
   public var container : CKContainer
   public var privateDB : CKDatabase
   public var sharedDB : CKDatabase
   public var zone : CKRecordZone.ID?
   public var zoneName : String
-  private var queue : [Event] = []
+  private var queue : [UUID:[Event]] = [:]
   
   private var pendingReads : [Event] = []
   
@@ -48,6 +48,12 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
   @Published public var writtenCount : Int = 0
   
   public var writeCancel : AnyCancellable?
+  public var timer = false
+  
+  public var readCount : Int = 0
+  public var writeCount : Int = 0
+  
+  private var dispatch = DispatchQueue(label: "com.technomage.icloudSync", qos: .userInitiated, attributes: DispatchQueue.Attributes(), autoreleaseFrequency: .workItem, target: nil)
   
   public init(zoneName : String) {
     NSLog("\n\n@@@@ Creating IcloudKitSync")
@@ -68,18 +74,22 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
   func ensureZoneExists(completion: @escaping () -> Void) {
     let zoneID = CKRecordZone.ID(zoneName: self.zoneName, ownerName: CKCurrentUserDefaultName)
     let op = CKFetchRecordZonesOperation(recordZoneIDs: [zoneID])
-    op.queuePriority = Operation.QueuePriority.high
+    op.queuePriority = .veryHigh
     op.fetchRecordZonesCompletionBlock = { zones, error in
       if zones?.keys.count ?? 0 > 0 {
         NSLog("@@@@ Received data on \(zones?.count ?? 0) zones \(String(describing: zones?.keys))")
         print("@@@@ Received data on \(zones?.count ?? 0) zones \(String(describing: zones?.keys))")
         self.zone = zoneID
-        self.status = .zoneExists
+        DispatchQueue.main.async {
+          self.status = .zoneExists
+        }
         completion()
         self.saveQueuedEvents()
       } else {
         NSLog("@@@@ Custom zone not found, creating it")
-        self.status = .creatingZone
+        DispatchQueue.main.async {
+          self.status = .creatingZone
+        }
         let createZoneGroup = DispatchGroup()
         createZoneGroup.enter()
         let zoneID = CKRecordZone.ID(zoneName: self.zoneName, ownerName: CKCurrentUserDefaultName)
@@ -90,7 +100,9 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
             NSLog("@@@@ Custom zone created \(zoneID)")
             print("@@@@ Custom zone created \(zoneID)")
             self.zone = zoneID
-            self.status = .zoneExists
+            DispatchQueue.main.async {
+              self.status = .zoneExists
+            }
             completion()
             self.saveQueuedEvents()
           } else {
@@ -110,29 +122,10 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
     privateDB.add(op)
   }
   
-  /// Save events queued while zone was being created
-  func saveQueuedEvents() {
-    // Process queued events from this app
-    if self.queue.count > 0 {
-      // Save queued events to database
-      NSLog("@@@@ Processing \(self.queue.count) queued events")
-      let recs = self.queue
-      self.queue = []
-      for e in recs {
-        do {
-          try self.processEvent(e)
-        } catch {
-          // Error handling
-          self.status = .error
-        }
-      }
-    }
-  }
-  
   /// Load project roots from iCloud
   public func loadProjectRoots(callback: @escaping (_ p:UUID) -> Void) {
     if self.zone == nil {
-      DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+      dispatch.asyncAfter(deadline: .now() + 1.0) {
         self.loadProjectRoots(callback: callback)
       }
     } else {
@@ -144,7 +137,7 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
   }
   
   func fetchRoots(_ op: CKQueryOperation, callback: @escaping (_ p:UUID) -> Void) {
-    op.queuePriority = .high
+    op.queuePriority = .veryHigh
     op.recordFetchedBlock = { rec in
       let p = UUID(uuidString: rec.recordID.recordName)
       NSLog("@@@@ Found root for \(p!.uuidString)")
@@ -170,7 +163,7 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
   /// Load records from iCloud for the provided project
   public func loadRecords(forProject project: UUID, callback: @escaping () -> Void) {
     if self.zone == nil {
-      DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+      dispatch.asyncAfter(deadline: .now() + 1.0) {
         self.loadRecords(forProject: project, callback: callback)
       }
     } else {
@@ -185,7 +178,7 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
   /// Load records from iCloud for the provided project's base events that define the project itself
   public func loadProjectRecords(forProject project: UUID, callback: @escaping () -> Void) {
     if self.zone == nil {
-      DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+      dispatch.asyncAfter(deadline: .now() + 1.0) {
         self.loadRecords(forProject: project, callback: callback)
       }
     } else {
@@ -200,7 +193,7 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
   let sort = NSSortDescriptor(key: "seq", ascending: true)
   
   func fetchRecords(_ op: CKQueryOperation, callback: @escaping () -> Void) {
-    op.queuePriority = .high
+    op.queuePriority = .veryHigh
     op.recordFetchedBlock = { rec in
       let eventId = UUID(uuidString: rec[EventSchema.eventID] as! String)!
       if !self.events.contains(eventId) && !(self.fileLogger?.savedEvents.contains(eventId) ?? false) {
@@ -239,6 +232,7 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
           return a.seq!.sortableString < b.seq!.sortableString
         }
         self.pendingReads = []
+        self.readCount += sorted.count
         DispatchQueue.main.async {
           for e in sorted {
 //            print("@@@@ ==== Processing sorted event \(e.id.uuidString) \(e.seq!.sortableString)")
@@ -337,79 +331,180 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
     if self.test(input) {
 //      print("\n\n@@@@ Received event \(input.id) \(input.status.rawValue) after testing for previous event and status")
       self.events.insert(input.id)
-      if self.zone != nil {
-        do {
-          try processEvent(input)
-        } catch {
-          self.queue.append(input)
-        }
-      } else {
-        queue.append(input)
-      }
+      self.appendToQueue(input)
     }
     return Subscribers.Demand.unlimited
   }
   
+  func startTimer() {
+    if !timer {
+//      print("@@@@ Starting timer")
+      timer = true
+      DispatchQueue.global().asyncAfter(deadline: .now() + 5.0) {
+//        print("@@@@ Timer completed, saving queued events")
+        self.timer = false
+        self.saveQueuedEvents()
+      }
+    }
+  }
+  
+  /// Save events queued while zone was being created
+  func saveQueuedEvents() {
+    self.dispatch.async {
+//      print("@@@@ Saving queued events \(self.queue.count)")
+      // Process queued events from this app
+      if self.queue.count > 0 {
+        // Save queued events to database
+//        NSLog("@@@@ Processing \(self.queue.count) queued events")
+        let recs = self.queue
+        self.queue = [:]
+        do {
+          for id in recs.keys {
+            if let root = self.projectRecords[id] {
+              try self.save(rootRecordID: root, events: recs[id]!)
+            } else {
+//              print("@@@@ Requeing events waiting for root \(id)")
+              for e in recs[id]! {
+                self.appendToQueue(e)
+              }
+            }
+          }
+        } catch {
+          print("#### Error in saving queued events \(String(describing: error))")
+          // Error handling
+          DispatchQueue.main.async {
+            self.status = .error
+          }
+        }
+      }
+    }
+  }
+  
+  /// Add an event to the queue to be written to iCloud when the timer next goes off
+  func appendToQueue(_ input: Event) {
+    self.dispatch.async {
+      let project = input.project
+      if let zone = self.zone {
+        self.ensureProjectRoot(project: project, zone: zone)
+      }
+      var list = self.queue[project] ?? []
+      list.append(input)
+      self.queue[project] = list
+      self.startTimer()
+    }
+  }
+  
   /// Process an event given zone exists
   func processEvent(_ input : Event) throws {
-    guard let zone = self.zone else {return}
+    guard self.zone != nil else {
+      self.appendToQueue(input)
+      return
+    }
     guard !projectRecordsInProcess.contains(input.project) else {
-      self.queue.append(input)
+      self.appendToQueue(input)
       return
     }
     // Write event to cloudkit
-//    print("@@@@@ Project records keys \(projectRecords.keys)")
     if !projectRecords.keys.contains(input.project) {
-      projectRecordsInProcess.append(input.project)
-//      NSLog("@@@@ Creating project root for \(input.project) event \(input.id)")
-//      print("@@@@ Creating project root for \(input.project) event \(input.id)")
+      self.appendToQueue(input)
+    } else {
+      // Get the project root
+      NSLog("@@@@ Using existing projet root for \(input.project)")
+      print("@@@@ Using existing projet root for \(input.project)")
+      let projectRoot = projectRecords[input.project]!
+      try save(rootRecordID: projectRoot, event: input)
+    }
+  }
+  
+  /// Ensure a project root exists for a project
+  func ensureProjectRoot(project : UUID, zone : CKRecordZone.ID) {
+    guard !projectRecordsInProcess.contains(project) else {
+      return
+    }
+//    print("@@@@ Ensuring project root exists for \(project)")
+    if !projectRecords.keys.contains(project) {
+//      NSLog("@@@@ Creating project root for \(project)")
+//      print("@@@@ Creating project root for \(project)")
+      projectRecordsInProcess.insert(project)
       // Create the project root record
       let projectType : String = RecordType.projectRoot.rawValue
       let op = CKModifyRecordsOperation()
-      op.queuePriority = .high
-      let rec = CKRecord(recordType: projectType, recordID: CKRecord.ID(recordName: input.project.uuidString, zoneID: zone))
+      op.queuePriority = .veryHigh
+      let rec = CKRecord(recordType: projectType, recordID: CKRecord.ID(recordName: project.uuidString, zoneID: zone))
       op.recordsToSave = [rec]
       op.modifyRecordsCompletionBlock = { roots, _, error in
         guard error == nil else {
-          NSLog("#### Error in saving project root to icloud \(input.project) event \(input.id): \(String(describing: error))")
-          print("#### Error in saving project root to icloud \(input.project) event \(input.id): \(String(describing: error))")
+          NSLog("#### Error in saving project root to icloud \(project): \(String(describing: error))")
+          print("#### Error in saving project root to icloud \(project): \(String(describing: error))")
           DispatchQueue.main.async {
             self.status = .error
           }
           return
         }
+//        print("@@@@ Project root created for \(project)")
         let root = roots![0]
-//        NSLog("@@@@ Created project root for \(input.project) event \(input.id) : \(String(describing: root?.recordID))")
-//        print("@@@@ Created project root for \(input.project) event \(input.id) : \(String(describing: root?.recordID))")
-//        DispatchQueue.main.async {
-          // Update on main queue to ensure sequential processing
-          self.projectRecords[input.project] = root.recordID
-          self.projectRecordsInProcess.remove(at: self.projectRecordsInProcess.firstIndex(of: input.project)!)
-          self.saveQueuedEvents()
-//        }
-        do {
-          try self.saveEvent(rootRecordID: root.recordID, event: input)
-        } catch {
-          // Error handling
-          NSLog("#### Error in saving event to icloud \(input.project)")
-          print("#### Error in saving event to icloud \(input.project)")
-          self.status = .error
-        }
-        
+        // Update on main queue to ensure sequential processing
+        self.projectRecords[project] = root.recordID
+        self.projectRecordsInProcess.remove(project)
+        self.saveQueuedEvents()
       }
       privateDB.add(op)
-    } else {
-      // Get the project root
-//      NSLog("@@@@ Using existing projet root for \(input.project)")
-//      print("@@@@ Using existing projet root for \(input.project)")
-      let projectRoot = projectRecords[input.project]!
-      try saveEvent(rootRecordID: projectRoot, event: input)
     }
   }
   
-  /// Save a record with project record as root
-  func saveEvent(rootRecordID root: CKRecord.ID, event: Event) throws {
+  /// Save records with project record as root
+  func save(rootRecordID root: CKRecord.ID, events: [Event]) throws {
 //    print("\n\n@@@@ Saving event \(event.id) \(self.writtenCount) to iCloud")
+    var recs = [CKRecord]()
+    var evts = [Event]()
+    for event in events {
+      var evt = event
+      evt.status = .persisted
+      let eventType : String = RecordType.event.rawValue
+      let rec = CKRecord(recordType: eventType, recordID: CKRecord.ID(__recordName: evt.id.uuidString, zoneID: zone!))
+      rec.setParent( root )
+      rec[EventSchema.eventData] = try evt.encode()
+      rec[EventSchema.eventType] = TypeTracker.keyFromType(type(of: evt))!
+      rec[EventSchema.seq] = evt.seq!.sortableString
+      rec[EventSchema.eventID] = evt.id.uuidString
+      rec[EventSchema.projectID] = evt.project.uuidString
+      rec[EventSchema.subjectID] = evt.subject.uuidString
+      recs.append(rec)
+      evts.append(event)
+      if recs.count > 300 && recs.count < events.count {
+        saveBatch(recs: recs, events: evts)
+        recs = []
+        evts = []
+      }
+    }
+    saveBatch(recs: recs, events: evts)
+  }
+  
+  func saveBatch( recs: [CKRecord], events: [Event]) {
+//    NSLog("@@@@ Saving batch of \(recs.count) records")
+    let op = CKModifyRecordsOperation()
+    op.queuePriority = .veryHigh
+    op.recordsToSave = recs
+    op.modifyRecordsCompletionBlock = { _, _, error in
+      guard error == nil else {
+        NSLog("#### Error in saving event \(String(describing: error))")
+        self.status = .error
+        return}
+//      print("@@@@ Saved \(events.count) events")
+      for e in events {
+        self.writtenEvents.insert(e.id)
+      }
+      self.writeCount = self.writtenEvents.count
+      DispatchQueue.main.async {
+        self.writtenCount = self.writtenEvents.count
+      }
+    }
+    privateDB.add(op)
+  }
+  
+  /// Save a record with project record as root
+  func save(rootRecordID root: CKRecord.ID, event: Event) throws {
+    //    print("\n\n@@@@ Saving event \(event.id) \(self.writtenCount) to iCloud")
     var evt = event
     evt.status = .persisted
     let eventType : String = RecordType.event.rawValue
@@ -422,24 +517,20 @@ public class CloudKitSync : Subscriber, Identifiable, Aggregator, ObservableObje
     rec[EventSchema.projectID] = evt.project.uuidString
     rec[EventSchema.subjectID] = evt.subject.uuidString
     let op = CKModifyRecordsOperation()
-    op.queuePriority = .high
+    op.queuePriority = .veryHigh
     op.recordsToSave = [rec]
     op.modifyRecordsCompletionBlock = { _, _, error in
       guard error == nil else {
         NSLog("#### Error in saving event \(String(describing: error))")
         self.status = .error
         return}
+      self.writtenEvents.insert(event.id)
+      self.writeCount = self.writtenEvents.count
       DispatchQueue.main.async {
-        self.updateWriteCount(event: event)
+        self.writtenCount = self.writtenEvents.count
       }
     }
     privateDB.add(op)
-  }
-  
-  public func updateWriteCount(event: Event) {
-    self.writtenEvents.append(event.id)
-    self.writtenCount = self.writtenEvents.count
-//    print("@@@@ Event \(event.id) \(self.writtenCount) saved")
   }
   
   /// Cancel the subscription

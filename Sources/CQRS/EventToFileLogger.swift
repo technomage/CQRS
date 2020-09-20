@@ -59,7 +59,7 @@ open class EventToFileLogger : Publisher {
   private var loadedProjects : [UUID] = []
   var downStream : Subscription? = nil
   var events : [Event] = []
-  var savedEvents : [UUID] = []
+  var savedEvents = Set<UUID>()
   
   public init?() {
     guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return nil }
@@ -91,7 +91,7 @@ open class EventToFileLogger : Publisher {
           EventToFileLogger.counter += 1
           if e.status != .persisted && e.status != .cached {
             self.events.append(e)
-            self.savedEvents.append(e.id)
+            self.savedEvents.insert(e.id)
             self.downStream?.request(Subscribers.Demand.unlimited)
             var fileHandle : FileHandle?
             if e.project == e.subject {
@@ -195,7 +195,7 @@ open class EventToFileLogger : Publisher {
       let limit = Swift.min(i+100, events.count)
 //      NSLog("@@@@ Loading events \(i) to \(limit)")
       for ind in i ..< limit {
-        savedEvents.append(events[ind].id)
+        savedEvents.insert(events[ind].id)
         store.append(events[ind])
       }
       NSLog("@@@@ Setting progress to \(limit)")

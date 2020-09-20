@@ -13,8 +13,16 @@ import Combine
 open class IndexedAggregator<E : ListEntry, R : Hashable&Codable&RoleEnum> : ListAggregator<E,R>
   where E : Identifiable, E.ID == UUID
 {
+  private var cache : [UUID : E]? = nil
+  
+  public override func receive(_ input: Event) -> Subscribers.Demand {
+    cache = nil
+    return super.receive(input)
+  }
+  
   public var dict : Dictionary<UUID, E> {
     get {
+      guard cache == nil else { return cache! }
       var result : [UUID:E] = [:]
       self.objAggs.values.forEach { agg in
         result[agg.obj!.id] = agg.obj!
