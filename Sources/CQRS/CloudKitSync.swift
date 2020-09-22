@@ -295,7 +295,11 @@ public class CloudKitSync : Subscriber {
               self.ensureZoneExists {
                 self.loadProjectRoots() { p in
                   // Load project defining events
-                  self.loadProjectRecords(forProject: p) {}
+                  self.loadProjectRecords(forProject: p) {
+                    if self.status != .error {
+                      self.status = .connected
+                    }
+                  }
                 }
                 Seq.localID = userRecordID
                 self.userRecordID = userRecordID
