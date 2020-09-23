@@ -243,6 +243,7 @@ public class CloudKitSync : Subscriber {
         let sorted = self.pendingReads.sorted { (a,b) -> Bool in
           return a.seq!.sortableString < b.seq!.sortableString
         }
+        NSLog("@@@@ Loaded \(sorted.count) iCloud events")
         self.pendingReads = []
         self.readCount += sorted.count
         for e in sorted {
@@ -293,12 +294,12 @@ public class CloudKitSync : Subscriber {
                 print("Contacts: \(userID!.contactIdentifiers)")
               }
               self.ensureZoneExists {
+                if self.status != .error {
+                  self.status = .connected
+                }
                 self.loadProjectRoots() { p in
                   // Load project defining events
                   self.loadProjectRecords(forProject: p) {
-                    if self.status != .error {
-                      self.status = .connected
-                    }
                   }
                 }
                 Seq.localID = userRecordID
