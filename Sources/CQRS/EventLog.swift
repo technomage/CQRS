@@ -65,7 +65,7 @@ open class EventLog : Subscriber, Publisher {
   var downStreams : [Subscription] = []
   var dsKeyed : [String:[Subscription]] = [:]
   var upStream : Subscription?
-  var events : Events = []
+  public var events : Events = []
   
   public func receive<S>(subscriber: S) where S : Subscriber, EventLog.Failure == S.Failure, EventLog.Output == S.Input {
 //    NSLog("@@@@ Subscription to log by \(subscriber) with \(downStreams.count) subscriptions current")

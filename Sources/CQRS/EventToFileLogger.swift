@@ -58,8 +58,8 @@ open class EventToFileLogger : Publisher {
   private static var counter : Int = 0
   private var loadedProjects : [UUID] = []
   var downStream : Subscription? = nil
-  var events : [Event] = []
-  var savedEvents = Set<UUID>()
+  public var events : [Event] = []
+  public var savedEvents = Set<UUID>()
   
   public init?() {
     guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return nil }
