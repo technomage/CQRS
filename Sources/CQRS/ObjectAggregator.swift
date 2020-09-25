@@ -83,7 +83,7 @@ open class ObjectAggregator<E : WithID&Equatable, R : Hashable&Codable&RoleEnum>
       if let evt = input as? ObjectEvent {
         events.append(evt)
         eventIds.insert(evt.id)
-        let eold = obj
+//        let eold = obj
         self.obj = evt.apply(to: obj)
 //        if eold != self.obj {
 //          NSLog("@@@@ Updated object in aggregator \(self.obj) for: \(input)\n\n")
