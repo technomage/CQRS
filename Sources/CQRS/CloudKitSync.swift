@@ -50,11 +50,14 @@ public class CloudKitSync : Subscriber {
   public typealias Input = Event
   public typealias Failure = Never
 
+  public static var debugFilter : (_:Event) -> Bool = {e in false}
+  
   @Published public var status : SyncStatus = .starting
   @Published public var readCount : Int = 0
   @Published public var writeCount : Int = 0
   
-  public var stream = CurrentValueSubject<Event?,Never>(nil)
+//  public var stream = EventLog()
+  public var store : UndoableEventStore?
   
   var sub : Subscription?
   public var fileLogger : EventToFileLogger?
@@ -243,11 +246,17 @@ public class CloudKitSync : Subscriber {
         let sorted = self.pendingReads.sorted { (a,b) -> Bool in
           return a.seq!.sortableString < b.seq!.sortableString
         }
-        NSLog("@@@@ Loaded \(sorted.count) iCloud events")
+        print("@@@@ Loaded \(sorted.count) iCloud events")
         self.pendingReads = []
         self.readCount += sorted.count
         for e in sorted {
-          self.stream.send(e)
+          if CloudKitSync.debugFilter(e) {
+            print("@@@@ Debug Event: \(String(describing: e))")
+          }
+//          self.stream.send(e)
+          DispatchQueue.main.async {
+            self.store?.append(e)
+          }
         }
         callback()
       }
