@@ -181,6 +181,11 @@ open class ListAggregator<E : ListEntry, R : Hashable&Codable&RoleEnum> : Subscr
     return nil
   }
   
+  /// Return the last item in the list
+  public var last : E? {
+    self.list.last
+  }
+  
   /// Delete an object from the list for a given project.  This emits events that are processed in the event store.
   public func delete(project: UUID, obj: E) {
     let prior = self.find(before: obj.id)

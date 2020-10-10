@@ -47,7 +47,7 @@ final class ArchiveTest: XCTestCase {
     XCTAssert(ar2.containsValue(forKey: "EVENTS2"), "Failed to encode data for key")
     let v2a = ar2.decodeObject(forKey: "EVENTS1")
     let v2b = ar2.decodeObject(forKey: "EVENTS2")
-    XCTAssertEqual(v1a, v2a as! Data, "Failed to get simple string back")
-    XCTAssertEqual(v1b, v2b as! Data, "Failed to get simple string back")
+    XCTAssertEqual(v1a, (v2a as! Data), "Failed to get simple string back")
+    XCTAssertEqual(v1b, (v2b as! Data), "Failed to get simple string back")
   }
 }

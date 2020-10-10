@@ -67,24 +67,22 @@ open class ObjectAggregator<E : WithID&Equatable, R : Hashable&Codable&RoleEnum>
   
   public func receive(_ input: Event) -> Subscribers.Demand {
     if self.test(input) {
-      DispatchQueue.main.async {
-        if let evt = input as? ListChange<E,R> {
-          self.events.append(evt)
-          self.eventIds.insert(evt.id)
-          switch evt.action {
-            case .create(_, let o) :
-              self.obj = o
-            case .delete :
-              self.obj = nil
-            default:
-              break
-          }
+      if let evt = input as? ListChange<E,R> {
+        self.events.append(evt)
+        self.eventIds.insert(evt.id)
+        switch evt.action {
+          case .create(_, let o) :
+            self.obj = o
+          case .delete :
+            self.obj = nil
+          default:
+            break
         }
-        if let evt = input as? ObjectEvent {
-          self.events.append(evt)
-          self.eventIds.insert(evt.id)
-          self.obj = evt.apply(to: self.obj)
-        }
+      }
+      if let evt = input as? ObjectEvent {
+        self.events.append(evt)
+        self.eventIds.insert(evt.id)
+        self.obj = evt.apply(to: self.obj)
       }
     }
     return Subscribers.Demand.unlimited
