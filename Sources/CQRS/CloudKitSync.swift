@@ -20,32 +20,6 @@ public enum SyncStatus : String {
 }
 
 @available(iOS 13.0, macOS 10.15, *)
-public class CloudModel : ObservableObject {
-  @Published public var status : SyncStatus = .starting
-  @Published public var readCount : Int = 0
-  @Published public var writeCount : Int = 0
-  
-  public var sync : CloudKitSync
-  
-  private var statusCancel : AnyCancellable?
-  private var readCancel : AnyCancellable?
-  private var writeCancel : AnyCancellable?
-  
-  public init(sync: CloudKitSync) {
-    self.sync = sync
-    statusCancel = sync.$status.receive(on: RunLoop.main).sink { s in
-      self.status = s
-    }
-    readCancel = sync.$readCount.receive(on: RunLoop.main).sink { c in
-      self.readCount = c
-    }
-    writeCancel = sync.$writeCount.receive(on: RunLoop.main).sink { c in
-      self.writeCount = c
-    }
-  }
-}
-
-@available(iOS 13.0, macOS 10.15, *)
 public class CloudKitSync : Subscriber {
   public typealias Input = Event
   public typealias Failure = Never
