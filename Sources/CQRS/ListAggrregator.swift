@@ -260,17 +260,17 @@ open class ListAggregator<E : ListEntry, R : Hashable&Codable&RoleEnum> : Subscr
             return d.id == after
           })
           self.list.insert(obj, at: afterIndex != nil ? afterIndex!+1 : 0)
-          self.objCancels[obj.id] = oa.$obj
-            .receive(on: RunLoop.main).sink { o in
-              // NSLog("@@@@ Updating list \(self.name) with object change \(o)\n\n")
-              self.list = self.list.map { ele in
-                if ele.id == o?.id {
-                  return o!
-                } else {
-                  return ele
-                }
-              }
-          }
+//          self.objCancels[obj.id] = oa.$obj
+//            .receive(on: RunLoop.main).sink { o in
+//              // NSLog("@@@@ Updating list \(self.name) with object change \(o)\n\n")
+//              self.list = self.list.map { ele in
+//                if ele.id == o?.id {
+//                  return o!
+//                } else {
+//                  return ele
+//                }
+//              }
+//          }
         case .delete :
           let index = list.firstIndex { d in
             d.id == input.subject

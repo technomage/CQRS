@@ -13,7 +13,7 @@ import Combine
 public typealias FilterClosure = (Event) -> Bool
 
 @available(iOS 13.0, macOS 10.15, *)
-open class ObjectAggregator<E : WithID&Equatable, R : Hashable&Codable&RoleEnum> : Subscriber, Identifiable, Aggregator, ObservableObject, DispatchKeys where E : Identifiable, E.ID == UUID
+open class ObjectAggregator<E : WithID&Equatable, R : Hashable&Codable&RoleEnum> : Subscriber, EventSubscriber, Identifiable, Aggregator, ObservableObject, DispatchKeys where E : Identifiable, E.ID == UUID
 {
   public typealias Input = Event
   public typealias Failure = Never
@@ -64,10 +64,10 @@ open class ObjectAggregator<E : WithID&Equatable, R : Hashable&Codable&RoleEnum>
   public func test(_ input : Event) -> Bool {
     return !self.eventIds.contains(input.id) && input.subject == self.subject
   }
-  
-  public func receive(_ input: Event) -> Subscribers.Demand {
-    if self.test(input) {
-      if let evt = input as? ListChange<E,R> {
+
+  public func receive(event: Event) {
+    if self.test(event) {
+      if let evt = event as? ListChange<E,R> {
         self.events.append(evt)
         self.eventIds.insert(evt.id)
         switch evt.action {
@@ -79,12 +79,16 @@ open class ObjectAggregator<E : WithID&Equatable, R : Hashable&Codable&RoleEnum>
             break
         }
       }
-      if let evt = input as? ObjectEvent {
+      if let evt = event as? ObjectEvent {
         self.events.append(evt)
         self.eventIds.insert(evt.id)
         self.obj = evt.apply(to: self.obj)
       }
     }
+  }
+  
+  public func receive(_ input: Event) -> Subscribers.Demand {
+    receive(event: input)
     return Subscribers.Demand.unlimited
   }
   
