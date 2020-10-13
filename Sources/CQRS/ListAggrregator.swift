@@ -256,21 +256,23 @@ open class ListAggregator<E : ListEntry, R : Hashable&Codable&RoleEnum> : Subscr
           oa.store = self.store
           self.store?.log.subscribe(oa)
           self.objAggs[obj.id] = oa
-          let afterIndex = (after == nil ? nil : list.firstIndex { d in
+          let afterIndex = (after == nil ? nil : (after == list.last?.id ? list.count-1 : list.firstIndex { d in
             return d.id == after
-          })
+          }))
           self.list.insert(obj, at: afterIndex != nil ? afterIndex!+1 : 0)
-//          self.objCancels[obj.id] = oa.$obj
-//            .receive(on: RunLoop.main).sink { o in
-//              // NSLog("@@@@ Updating list \(self.name) with object change \(o)\n\n")
-//              self.list = self.list.map { ele in
-//                if ele.id == o?.id {
-//                  return o!
-//                } else {
-//                  return ele
-//                }
-//              }
-//          }
+          // Track changes to child objects
+          self.objCancels[obj.id] = oa.$obj
+            .receive(on: RunLoop.main).sink { o in
+              // NSLog("@@@@ Updating list \(self.name) with object change \(o)\n\n")
+              // TODO: Use index map to update list rather than build a new one?
+              self.list = self.list.map { ele in
+                if ele.id == o?.id {
+                  return o!
+                } else {
+                  return ele
+                }
+              }
+          }
         case .delete :
           let index = list.firstIndex { d in
             d.id == input.subject

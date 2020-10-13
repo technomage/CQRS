@@ -10,7 +10,7 @@ import Foundation
 import Combine
 
 @available(iOS 13.0, macOS 10.15, *)
-open class IndexedAggregator<E : ListEntry&Named, R : Hashable&Codable&RoleEnum> : ListAggregator<E,R>
+open class IndexedAggregator<E : ListEntry, R : Hashable&Codable&RoleEnum> : ListAggregator<E,R>
   where E : Identifiable, E.ID == UUID
 {
   private var cache : [UUID : E]? = nil
@@ -110,6 +110,12 @@ open class IndexedAggregator<E : ListEntry&Named, R : Hashable&Codable&RoleEnum>
   }
   
   public func named(_ name : String) -> E? {
-    return self.list.first(where: { f in f.name == name })
+    return self.list.first(where: { f in
+      if let fn = f as? Named {
+        return fn.name == name
+      } else {
+        return false
+      }
+    })
   }
 }
