@@ -35,8 +35,10 @@ open class ListAggregator<E : ListEntry, R : Hashable&Codable&RoleEnum> : Subscr
 
   @Published public var list : [E] = []
   @Published public var events : [LE] = []
-  public var eventIds : Set<UUID> = []
-  var sub : Subscription?
+  
+  private var listOfIDs = [UUID]()
+  private var eventIds : Set<UUID> = []
+  private var sub : Subscription?
   public var store : UndoableEventStore?
   public var childConfig : ChildAggregatorClosure?
   public var objAggs = Dictionary<UUID, ObjectAggregator<E,R>>()
@@ -44,7 +46,6 @@ open class ListAggregator<E : ListEntry, R : Hashable&Codable&RoleEnum> : Subscr
   public var name : String?
   
   public init() {
-    
   }
   
   public convenience init(filter: @escaping ListFilterClosure) {
@@ -143,15 +144,18 @@ open class ListAggregator<E : ListEntry, R : Hashable&Codable&RoleEnum> : Subscr
     return self
   }
   
+  public func indexFor(id : UUID) -> Int? {
+    if id == listOfIDs.last {
+      return listOfIDs.count-1
+    }
+    return listOfIDs.firstIndex(of: id)
+  }
+  
   /// Find the object prior to the obj with the given ID
   public func find(before: UUID) -> E? {
-    for i in 0..<self.list.count {
-      if self.list[i].id == before {
-        if i == 0 {
-          return nil
-        } else {
-          return self.list[i-1]
-        }
+    if let idx = indexFor(id: before) {
+      if idx > 0 {
+        return self.list[idx-1]
       }
     }
     return nil
@@ -159,13 +163,9 @@ open class ListAggregator<E : ListEntry, R : Hashable&Codable&RoleEnum> : Subscr
   
   /// Find the object after to the obj with the given ID
   public func find(after: UUID) -> E? {
-    for i in 0..<self.list.count {
-      if self.list[i].id == after {
-        if i == self.list.count-1 {
-          return nil
-        } else {
-          return self.list[i+1]
-        }
+    if let idx = indexFor(id: after) {
+      if idx < list.count {
+        return self.list[idx+1]
       }
     }
     return nil
@@ -173,9 +173,9 @@ open class ListAggregator<E : ListEntry, R : Hashable&Codable&RoleEnum> : Subscr
   
   /// Locate the object in the list with the given id
   public func find(id: UUID) -> E? {
-    for i in 0..<self.list.count {
-      if self.list[i].id == id {
-        return self.list[i]
+    if let idx = indexFor(id: id) {
+      if idx < list.count {
+        return self.list[idx]
       }
     }
     return nil
@@ -256,10 +256,9 @@ open class ListAggregator<E : ListEntry, R : Hashable&Codable&RoleEnum> : Subscr
           oa.store = self.store
           self.store?.log.subscribe(oa)
           self.objAggs[obj.id] = oa
-          let afterIndex = (after == nil ? nil : (after == list.last?.id ? list.count-1 : list.firstIndex { d in
-            return d.id == after
-          }))
-          self.list.insert(obj, at: afterIndex != nil ? afterIndex!+1 : 0)
+          let afterIndex = after == nil ? nil : indexFor(id: after!)
+          listOfIDs.insert(obj.id, at: afterIndex != nil ? afterIndex!+1 : 0)
+          list.insert(obj, at: afterIndex != nil ? afterIndex!+1 : 0)
           // Track changes to child objects
           self.objCancels[obj.id] = oa.$obj
             .receive(on: RunLoop.main).sink { o in
@@ -274,11 +273,10 @@ open class ListAggregator<E : ListEntry, R : Hashable&Codable&RoleEnum> : Subscr
               }
           }
         case .delete :
-          let index = list.firstIndex { d in
-            d.id == input.subject
-          }
+          let index = indexFor(id: input.subject)
           if index != nil {
             self.list.remove(at: index!)
+            listOfIDs.remove(at: index!)
           }
           self.objCancels[input.subject]?.cancel()
           self.objCancels[input.subject] = nil
@@ -286,18 +284,17 @@ open class ListAggregator<E : ListEntry, R : Hashable&Codable&RoleEnum> : Subscr
         case .move(let from, let after, _) :
           let e = self.find(id: from)
           if e != nil {
-            let fromIndex = list.firstIndex { d in
-              d.id == from
-            }
-            let afterIndex = list.firstIndex { d in
-              d.id == after
-              } ?? -1
+            let fromIndex = indexFor(id: from)
+            let afterIndex = after != nil ? indexFor(id: after!) ?? -1 : -1
             if fromIndex != nil {
               list.remove(at: fromIndex!)
+              listOfIDs.remove(at: fromIndex!)
               if fromIndex! < afterIndex {
                 list.insert(e!, at: afterIndex)
+                listOfIDs.insert(e!.id, at: afterIndex)
               } else {
                 list.insert(e!, at: afterIndex+1)
+                listOfIDs.insert(e!.id, at: afterIndex+1)
               }
             }
           }
