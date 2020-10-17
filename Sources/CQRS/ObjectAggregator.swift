@@ -65,7 +65,7 @@ open class ObjectAggregator<E : WithID&Equatable, R : Hashable&Codable&RoleEnum>
     return !self.eventIds.contains(input.id) && input.subject == self.subject
   }
 
-  public func receive(event: Event) {
+  open func receive(event: Event) {
     if self.test(event) {
       if let evt = event as? ListChange<E,R> {
         self.events.append(evt)
