@@ -478,7 +478,7 @@ public class CloudKitSync : Subscriber {
         return}
 //      print("@@@@ Saved \(events.count) events")
       for e in events {
-        self.writtenEvents.insert(e.id)
+        self.writtenEvents.insert(e.id) // TODO: occasional crash, probably threading
       }
       self.writeCount = self.writtenEvents.count
     }
