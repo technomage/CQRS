@@ -112,6 +112,9 @@ open class EventToFileLogger : Publisher {
             if typeName == nil || TypeTracker.typeFromKey(typeName!) == nil {
               NSLog("\n\n\n#####\n##### Failed to register type \(typeName ?? "nil")\n#####\n\n\n")
             }
+            if typeName!.contains("SetEvent<Widget") {
+              Swift.print("@@@@ Saving widget SetEvent: \(e2) typeName: \(typeName!)")
+            }
             fileHandle!.write(typeName!.data(using: .utf8)!)
             fileHandle!.write("\n".data(using: .utf8)!)
             fileHandle!.write(data)
@@ -120,6 +123,7 @@ open class EventToFileLogger : Publisher {
           }
         } catch {
           // TODO: Handle error so it can be presented in UI to inform user (possibly out of space)
+          NSLog("#### Error in handling event log to file \(error)")
         }
       }
   }
@@ -163,18 +167,19 @@ open class EventToFileLogger : Publisher {
           var event : Event = try et.decode(from: json.data(using: .utf8)!)
           event.status = .cached
           evts.append(event)
+          if typeName.contains("SetEvent<Widget") {
+            Swift.print("@@@@ Loaded widget SetEvent: \(event)")
+          }
         } catch {
           NSLog("#### Error \(error) in loading event \(typeName) \(json)")
         }
       }
+      NSLog("@@@@ \(evts.count) Events decoded")
       DispatchQueue.main.async {
         NSLog("@@@@ Setting progress total to \(evts.count)")
         progress.total = evts.count
 //        NSLog("@@@@ Showing loading screen")
 //        showLoading.loading = true
-      }
-      NSLog("@@@@ \(evts.count) Events decoded")
-      DispatchQueue.main.async {
         progress.progress = 0
       }
       if evts.count > 0 {
@@ -203,11 +208,9 @@ open class EventToFileLogger : Publisher {
       if limit < events.count {
         self.processEvent(events, limit, store: store, progress: progress, showLoading: showLoading, onComplete: onComplete)
       } else {
-        DispatchQueue.main.async {
-          NSLog("@@@@ Events loaded")
-          showLoading.loading = .done
-          onComplete(.loadingFile)
-        }
+        NSLog("@@@@ Events loaded")
+        showLoading.loading = .done
+        onComplete(.loadingFile)
       }
     }
   }
