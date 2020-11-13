@@ -89,7 +89,7 @@ open class EventToFileLogger : Publisher {
       .sink { e in
         do {
           EventToFileLogger.counter += 1
-          if e.status != .persisted && e.status != .cached {
+          if !self.savedEvents.contains(e.id) {
             self.events.append(e)
             self.savedEvents.insert(e.id)
             self.downStream?.request(Subscribers.Demand.unlimited)
