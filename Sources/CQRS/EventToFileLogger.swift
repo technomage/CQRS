@@ -105,6 +105,7 @@ open class EventToFileLogger : Publisher {
             }
             var e2 = e
             e2.status = .persisted
+//            Swift.print("@@@@ Logging event: \(e)")
             guard fileHandle != nil else {return}
             let data : Data = try e2.encode()
             fileHandle?.seekToEndOfFile()
