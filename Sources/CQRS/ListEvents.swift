@@ -117,6 +117,7 @@ public struct ListChange<E : WithID,R : Equatable&Codable&RoleEnum> : Equatable,
   public func reverse() -> Event {
     var e = self
     e.id = UUID()
+    e.seq = nil
     switch action {
       case .create(let after, let obj):
         e.action = .delete(after: after, obj: obj)

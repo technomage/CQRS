@@ -224,9 +224,9 @@ public class CloudKitSync : Subscriber {
         self.pendingReads = []
         self.readCount += sorted.count
         for e in sorted {
-          if CloudKitSync.debugFilter(e) {
-            print("@@@@ Debug Event: \(String(describing: e))")
-          }
+//          if CloudKitSync.debugFilter(e) {
+          print("@@@@ Debug Event \(e.seq!.sortableString): \(String(describing: e))")
+//          }
 //          self.stream.send(e)
           DispatchQueue.main.async {
             self.store?.append(e)
@@ -285,7 +285,6 @@ public class CloudKitSync : Subscriber {
                   self.loadProjectRecords(forProject: p) {
                   }
                 }
-                Seq.localID = userRecordID
                 self.userRecordID = userRecordID
                 NSLog("User record id \(userRecordID)")
               }

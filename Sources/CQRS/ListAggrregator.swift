@@ -254,11 +254,12 @@ open class ListAggregator<E : ListEntry, R : Hashable&Codable&RoleEnum> : Subscr
             ObjectAggregator<E,R>(obj: obj, store: self.store)
           // NSLog("@@@@ Child aggregator has children: \(oa.childAggregators)")
           oa.store = self.store
-          self.store?.log.subscribe(oa)
           self.objAggs[obj.id] = oa
           let afterIndex = after == nil ? nil : indexFor(id: after!)
           listOfIDs.insert(obj.id, at: afterIndex != nil ? afterIndex!+1 : 0)
           list.insert(obj, at: afterIndex != nil ? afterIndex!+1 : 0)
+          oa.subscribeToStore()
+          oa.configureChildren()
           // Track changes to child objects
           self.objCancels[obj.id] = oa.$obj
             .receive(on: RunLoop.main).sink { o in
@@ -280,7 +281,9 @@ open class ListAggregator<E : ListEntry, R : Hashable&Codable&RoleEnum> : Subscr
           }
           self.objCancels[input.subject]?.cancel()
           self.objCancels[input.subject] = nil
+          let agg = objAggs[input.subject]
           self.objAggs.removeValue(forKey: input.subject)
+          agg?.obj = nil
         case .move(let from, let after, _) :
           let e = self.find(id: from)
           if e != nil {

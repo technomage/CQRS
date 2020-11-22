@@ -46,6 +46,7 @@ public struct SetEvent<E,T : Codable> : Event, Equatable, ObjectEvent, Codable {
   public func reverse() -> Event {
     var e : SetEvent<E, T> = self
     e.id = UUID()
+    e.seq = nil
     let v = value
     e.value = prior
     e.prior = v

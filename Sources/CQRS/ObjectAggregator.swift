@@ -61,6 +61,10 @@ open class ObjectAggregator<E : WithID&Equatable, R : Hashable&Codable&RoleEnum>
     self.store!.log.subscribe(self)
   }
   
+  // The following MUST be overridden for any aggregator that has child lists
+  open func configureChildren() {
+  }
+  
   public func test(_ input : Event) -> Bool {
     return !self.eventIds.contains(input.id) && input.subject == self.subject
   }
@@ -79,10 +83,10 @@ open class ObjectAggregator<E : WithID&Equatable, R : Hashable&Codable&RoleEnum>
             break
         }
       }
-      if let evt = event as? ObjectEvent {
+      if let o = self.obj, let evt = event as? ObjectEvent {
         self.events.append(evt)
         self.eventIds.insert(evt.id)
-        self.obj = evt.apply(to: self.obj)
+        self.obj = evt.apply(to: o)
       }
     }
   }

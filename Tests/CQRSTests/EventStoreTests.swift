@@ -22,7 +22,7 @@ class EventStoreTests: XCTestCase {
   
   override func setUp() {
     // Put setup code here. This method is called before the invocation of each test method in the class.
-    Seq.localID = CKRecord.ID(recordName: "Test")
+    Seq.localID = UUID()
   }
   
   override func tearDown() {

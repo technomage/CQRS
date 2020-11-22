@@ -39,43 +39,65 @@ open class EventStore : ObservableObject {
     self._append(event)
   }
   
-  func _append(_ event : Event) {
+  @discardableResult func _append(_ event : Event) -> Event {
     var evt = event
     let s = next(evt)
     evt.seq = s
     self.event = evt
+    return evt;
   }
 }
 
 @available(iOS 13.0, macOS 10.15, *)
 open class UndoableEventStore : EventStore {
   public var undo : UndoManager?
-  
+  static public var debugUndo = false
+  static public var seenRedo : Bool = false // in conjunction with debugUndo
+
   public override func append(_ event : Event) {
     var e = event
     e.undoType = .change
     self._append(e)
   }
   
-  override func _append(_ event : Event) {
-    undo?.registerUndo(withTarget: self) { me in
-      me.reverse(event)
+  @discardableResult override func _append(_ event : Event) -> Event {
+    let e = super._append(event)
+    if UndoableEventStore.debugUndo {
+      if event.undoType == .redo {
+        UndoableEventStore.seenRedo = true
+      }
+      print("\n\n@@@@ Applyed event \(String(describing: event))\n@@@@     as \(String(describing: e))\n")
     }
-    super._append(event)
+    undo?.registerUndo(withTarget: self) { me in
+      me.reverse(e)
+    }
+    if e.seq == nil {
+      print("\n\n###### Nil seq!!!! #### \(String(describing: event)) ####\n\n")
+    }
+    return e
   }
   
   public func reverse(_ event : Event) {
-    var e = event
+    if UndoableEventStore.debugUndo {
+      print("\n\n@@@@ Undo of \(String(describing: event))\n")
+    }
+    let e = event
+    var e2 = e.reverse()
     switch e.undoType {
       case .change:
-        e.undoType = .undo
+        e2.undoType = .undo
       case .undo:
-        e.undoType = .redo
+        e2.undoType = .redo
       case .redo:
-        e.undoType = .undo
+        e2.undoType = .undo
     }
-    let e2 = e.reverse()
-    self._append(e2)
+    let e3 = self._append(e2)
+    if UndoableEventStore.debugUndo {
+      print("\n\n@@@@ Reversed event \(String(describing: e))\n@@@@    to \(String(describing: e3))")
+    }
+    if e3.seq == nil {
+      print("\n\n###### Nil seq!!!! #### \(String(describing: e2)) ####\n\n")
+    }
   }
 }
 

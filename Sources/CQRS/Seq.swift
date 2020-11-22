@@ -27,9 +27,9 @@ import CloudKit
 
 @available(iOS 13.0, macOS 10.15, *)
 public struct Seq : Equatable, Codable {
-  public static var localID : CKRecord.ID?
+  public static var localID : UUID? = nil
   /// The time values for each known user
-  public var counts : [CKRecord.ID : UInt]
+  public var counts : [UUID : UInt]
   
   /// Initialize a Seq at base values, use next() to increment the
   /// local value for the current user as changes progress.
@@ -38,12 +38,12 @@ public struct Seq : Equatable, Codable {
   }
   
   /// Initialize seq from a map of timestamps per user
-  private init(_ counts : [CKRecord.ID : UInt]) {
+  private init(_ counts : [UUID : UInt]) {
     self.counts = counts
   }
 
   /// Generate the next sequence given the id advancing the clock
-  public func next(_ id : CKRecord.ID) -> Seq {
+  public func next(_ id : UUID) -> Seq {
     var next = counts
     next[id] = (next[id] ?? 0) + 1
     return Seq(next)
@@ -80,9 +80,8 @@ public struct Seq : Equatable, Codable {
     var container = encoder.unkeyedContainer()
     try container.encode(self.counts.keys.count)
     for k in self.counts.keys {
-      let keyData = try NSKeyedArchiver.archivedData(withRootObject: k, requiringSecureCoding: false)
       let value = self.counts[k]
-      try container.encode(keyData)
+      try container.encode(k)
       try container.encode(value)
     }
   }
@@ -92,8 +91,7 @@ public struct Seq : Equatable, Codable {
     var container = try decoder.unkeyedContainer()
     let n = try container.decode(Int.self)
     for _ in 0..<n {
-      let keyData = try container.decode(Data.self)
-      let key : CKRecord.ID = try NSKeyedUnarchiver.unarchiveTopLevelObjectWithData(keyData) as! CKRecord.ID
+      let key : UUID = try container.decode(UUID.self)
       let value : Int = try container.decode(Int.self)
       self.counts[key] = UInt(value)
     }
@@ -106,7 +104,7 @@ public struct Seq : Equatable, Codable {
       return ast <= bst
     }
     return keys.reduce("") { result, k in
-      [result, "\(k.recordName):\(String(format: "%09d", self.counts[k]!))"].joined(separator: ",")
+      [result, "\(k.uuidString):\(String(format: "%09d", self.counts[k]!))"].joined(separator: ",")
     }
   }
 }
