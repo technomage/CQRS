@@ -38,7 +38,7 @@ class LogSubscription<S> : Subscription where S : Subscriber, S.Input == Event {
         index += 1
         let event = log.events[index-1]
         if UndoableEventStore.debugUndo && UndoableEventStore.seenRedo {
-          print("@@@@ Sending \(index)/\(log.events.count) \(id) to \((sub as? DebugNamed)?.name ?? String(describing: sub)) for event \(String(describing: event))\n\n")
+//          print("@@@@ Sending \(index)/\(log.events.count) \(id) to \((sub as? DebugNamed)?.name ?? String(describing: sub)) for event \(String(describing: event))\n\n")
         }
         let d2 = sub.receive(event)
         if (d.max != nil && d2.max != nil) {
