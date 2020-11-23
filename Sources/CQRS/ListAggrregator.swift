@@ -219,7 +219,7 @@ open class ListAggregator<E : ListEntry, R : Hashable&Codable&RoleEnum> : Subscr
   }
   
   /// Respond to a new subscription
-  public func receive(subscription: Subscription) {
+  open func receive(subscription: Subscription) {
     sub = subscription
     subscription.request(Subscribers.Demand.unlimited)
   }
@@ -234,7 +234,7 @@ open class ListAggregator<E : ListEntry, R : Hashable&Codable&RoleEnum> : Subscr
   }
   
   /// For direct receive lists, process one event at a time as provided to the list directly
-  public func receive(_ event : Event) -> Subscribers.Demand {
+  open func receive(_ event : Event) -> Subscribers.Demand {
     if event is ListChange<E,R> {
       let le = event as! ListChange<E,R>
       let _ = self.receive(le)

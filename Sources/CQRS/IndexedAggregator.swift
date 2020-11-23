@@ -15,7 +15,7 @@ open class IndexedAggregator<E : ListEntry, R : Hashable&Codable&RoleEnum> : Lis
 {
   private var cache : [UUID : E]? = nil
   
-  public override func receive(_ input: Event) -> Subscribers.Demand {
+  open override func receive(_ input: Event) -> Subscribers.Demand {
     cache = nil
     return super.receive(input)
   }
