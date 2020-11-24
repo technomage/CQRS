@@ -51,8 +51,41 @@ open class EventStore : ObservableObject {
 @available(iOS 13.0, macOS 10.15, *)
 open class UndoableEventStore : EventStore {
   public var undo : UndoManager?
+  public var undoBatch : [Event]? = nil // Events batched together because undo manager seems to have a limit of 100 per group
+  
   static public var debugUndo = false
   static public var seenRedo : Bool = false // in conjunction with debugUndo
+  
+  public func startUndoBatch() {
+    if undoBatch == nil {
+      undoBatch = []
+    } else {
+      print("\n\n@@@@ Start undo batch while in the middle of a batch!!!!\n\n")
+    }
+  }
+  
+  public func endUndoBatch() {
+    if undoBatch != nil {
+      print("\n\n@@@@ End undo batch with \(undoBatch!.count) events")
+      let batch = undoBatch!
+      undoBatch = nil
+      undo?.registerUndo(withTarget: self) { me in
+        print("\n\n@@@@ Undo a batch of \(batch.count) events\n\n")
+        self.startUndoBatch()
+        // Reverse all events in the batch
+        for e in batch {
+          if UndoableEventStore.debugUndo && String(describing: e).contains("\"Description\"") && String(describing: e).contains("ListChange") {
+            print("\n\n@@@@ \(e.undoType.rawValue) \(String(describing:e))\n\n")
+          }
+          let re = self.reverseEvent(e)
+          self._append(re)
+        }
+        self.endUndoBatch()
+        print("\n\n@@@@ End of batch undo\n\n")
+      }
+      undoBatch = nil
+    }
+  }
 
   public override func append(_ event : Event) {
     var e = event
@@ -63,13 +96,17 @@ open class UndoableEventStore : EventStore {
   @discardableResult override func _append(_ event : Event) -> Event {
     let e = super._append(event)
     if UndoableEventStore.debugUndo {
-      if event.undoType == .redo {
-        UndoableEventStore.seenRedo = true
-      }
-      print("\n\n@@@@ Applyed event \(String(describing: event))\n@@@@     as \(String(describing: e))\n")
+//      if event.undoType == .redo {
+//        UndoableEventStore.seenRedo = true
+//      }
+//      print("\n\n@@@@ Applied event \(String(describing: event))\n@@@@     as \(String(describing: e))\n")
     }
-    undo?.registerUndo(withTarget: self) { me in
-      me.reverse(e)
+    if undoBatch == nil {
+      undo?.registerUndo(withTarget: self) { me in
+        me.reverse(e)
+      }
+    } else {
+      undoBatch!.append(e)
     }
     if e.seq == nil {
       print("\n\n###### Nil seq!!!! #### \(String(describing: event)) ####\n\n")
@@ -77,10 +114,7 @@ open class UndoableEventStore : EventStore {
     return e
   }
   
-  public func reverse(_ event : Event) {
-    if UndoableEventStore.debugUndo {
-      print("\n\n@@@@ Undo of \(String(describing: event))\n")
-    }
+  func reverseEvent(_ event : Event) -> Event {
     let e = event
     var e2 = e.reverse()
     switch e.undoType {
@@ -91,10 +125,18 @@ open class UndoableEventStore : EventStore {
       case .redo:
         e2.undoType = .undo
     }
+    return e2
+  }
+  
+  public func reverse(_ event : Event) {
+//    if UndoableEventStore.debugUndo {
+//      print("\n\n@@@@ Undo of \(String(describing: event))\n")
+//    }
+    let e2 = reverseEvent(event)
     let e3 = self._append(e2)
-    if UndoableEventStore.debugUndo {
-      print("\n\n@@@@ Reversed event \(String(describing: e))\n@@@@    to \(String(describing: e3))")
-    }
+//    if UndoableEventStore.debugUndo {
+//      print("\n\n@@@@ Reversed event \(String(describing: event))\n@@@@    to \(String(describing: e3))")
+//    }
     if e3.seq == nil {
       print("\n\n###### Nil seq!!!! #### \(String(describing: e2)) ####\n\n")
     }
