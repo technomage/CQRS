@@ -15,6 +15,7 @@ public enum RecordType : String, Codable {
 
 public struct EventSchema {
   public static let eventData = "event"
+  public static let eventAsset = "asset"
   public static let eventType = "eventType"
   public static let seq = "seq"
   public static let eventID = "eventID"

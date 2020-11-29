@@ -192,16 +192,28 @@ public class CloudKitSync : Subscriber {
         self.events.insert(eventId)
         // deserialize event from icloud and add to store if not previously seen by it
         let typeName = rec[EventSchema.eventType] as! String
-        let data = rec[EventSchema.eventData] as! Data
+        var data : Data?
+        if let d = rec[EventSchema.eventData] {
+          data = (d as! Data)
+        } else {
+          let asset : CKAsset = rec[EventSchema.eventAsset] as! CKAsset
+          do {
+            data = try Data(contentsOf: asset.fileURL!)
+          } catch {
+            NSLog("#### Error \(error) in loading event \(typeName)")
+            print("#### Error \(error) in loading event \(typeName)")
+            self.status = .error
+          }
+        }
         let et : Event.Type = TypeTracker.typeFromKey(typeName) as! Event.Type
         do {
-          let event : Event = try et.decode(from: data)
+          let event : Event = try et.decode(from: data!)
           if event.id != eventId {
             print("########## Event read from icloud without proper id #############")
           }
           self.pendingReads.append(event)
         } catch {
-          let json : String = String(data: data, encoding: .utf8)!
+          let json : String = String(data: data!, encoding: .utf8)!
           NSLog("#### Error \(error) in loading event \(typeName) \(json)")
           print("#### Error \(error) in loading event \(typeName) \(json)")
           self.status = .error
@@ -447,21 +459,39 @@ public class CloudKitSync : Subscriber {
       let eventType : String = RecordType.event.rawValue
       let rec = CKRecord(recordType: eventType, recordID: CKRecord.ID(__recordName: evt.id.uuidString, zoneID: zone!))
       rec.setParent( root )
-      rec[EventSchema.eventData] = try evt.encode()
-      rec[EventSchema.eventType] = TypeTracker.keyFromType(type(of: evt))!
-      rec[EventSchema.seq] = evt.seq!.sortableString
-      rec[EventSchema.eventID] = evt.id.uuidString
-      rec[EventSchema.projectID] = evt.project.uuidString
-      rec[EventSchema.subjectID] = evt.subject.uuidString
+      try saveEventToRecord(rec: rec, evt: evt)
       recs.append(rec)
       evts.append(event)
-      if recs.count > 300 && recs.count < events.count {
+      if recs.count > 200 && recs.count < events.count {
         saveBatch(recs: recs, events: evts)
         recs = []
         evts = []
       }
     }
     saveBatch(recs: recs, events: evts)
+  }
+  
+  func saveEventToRecord(rec: CKRecord, evt: Event) throws {
+    let data = try evt.encode()
+    print("\n\n\n@@@ Writing data \(data.count) bytes")
+    if data.count < 900_000 {
+      rec[EventSchema.eventData] = data
+    } else {
+      print("@@@@ Saving as asset field\n\n")
+      let url = NSURL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString+".dat")
+      do {
+        try data.write(to: url!, options: [])
+      } catch let e as NSError {
+        NSLog("#### Error! \(e)");
+        return
+      }
+      rec[EventSchema.eventAsset] = CKAsset(fileURL: url!)
+    }
+    rec[EventSchema.eventType] = TypeTracker.keyFromType(type(of: evt))!
+    rec[EventSchema.seq] = evt.seq!.sortableString
+    rec[EventSchema.eventID] = evt.id.uuidString
+    rec[EventSchema.projectID] = evt.project.uuidString
+    rec[EventSchema.subjectID] = evt.subject.uuidString
   }
   
   func saveBatch( recs: [CKRecord], events: [Event]) {
@@ -492,12 +522,7 @@ public class CloudKitSync : Subscriber {
     let eventType : String = RecordType.event.rawValue
     let rec = CKRecord(recordType: eventType, recordID: CKRecord.ID(__recordName: evt.id.uuidString, zoneID: zone!))
     rec.setParent( root )
-    rec[EventSchema.eventData] = try evt.encode()
-    rec[EventSchema.eventType] = TypeTracker.keyFromType(type(of: evt))!
-    rec[EventSchema.seq] = evt.seq!.sortableString
-    rec[EventSchema.eventID] = evt.id.uuidString
-    rec[EventSchema.projectID] = evt.project.uuidString
-    rec[EventSchema.subjectID] = evt.subject.uuidString
+    try saveEventToRecord(rec: rec, evt: evt)
     let op = CKModifyRecordsOperation()
     op.queuePriority = .veryHigh
     op.recordsToSave = [rec]
