@@ -473,11 +473,11 @@ public class CloudKitSync : Subscriber {
   
   func saveEventToRecord(rec: CKRecord, evt: Event) throws {
     let data = try evt.encode()
-    print("\n\n\n@@@ Writing data \(data.count) bytes")
+//    print("\n\n\n@@@ Writing data \(data.count) bytes")
     if data.count < 900_000 {
       rec[EventSchema.eventData] = data
     } else {
-      print("@@@@ Saving as asset field\n\n")
+//      print("@@@@ Saving as asset field\n\n")
       let url = NSURL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString+".dat")
       do {
         try data.write(to: url!, options: [])

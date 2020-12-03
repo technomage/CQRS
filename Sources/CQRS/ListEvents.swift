@@ -16,12 +16,16 @@ public protocol ListEvent : Event, DispatchKeys {
   var role : R? { get }
 }
 
+public protocol ListEventWithParent : Event{
+  var parent : UUID? { get set }
+}
+
 public protocol WithID : Codable {
   var id : UUID { get }
 }
 
 @available(iOS 13.0, macOS 10.15, *)
-public struct ListChange<E : WithID,R : Equatable&Codable&RoleEnum> : Equatable, ListEvent, Codable {
+public struct ListChange<E : WithID,R : Equatable&Codable&RoleEnum> : Equatable, ListEvent, Codable, ListEventWithParent {
   public static func == (lhs: ListChange<E,R>, rhs: ListChange<E,R>) -> Bool {
     return lhs.seq == rhs.seq && lhs.id == rhs.id && lhs.subject == rhs.subject && lhs.parent == rhs.parent && lhs.status == rhs.status && lhs.undoType == rhs.undoType && lhs.role == rhs.role
   }

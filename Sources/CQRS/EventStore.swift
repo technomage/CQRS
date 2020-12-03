@@ -149,9 +149,9 @@ public typealias Events = [Event]
 @available(iOS 13.0, macOS 10.15, *)
 public protocol Event : Codable {
   var seq : Seq? { get set }
-  var id : UUID { get }
-  var project : UUID { get }
-  var subject : UUID { get }
+  var id : UUID { get set }
+  var project : UUID { get set }
+  var subject : UUID { get set }
   var status : EventStatus { get set }
   var undoType: UndoMode { get set }
   //

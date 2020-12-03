@@ -25,7 +25,9 @@ open class IndexedAggregator<E : ListEntry, R : Hashable&Codable&RoleEnum> : Lis
       guard cache == nil else { return cache! }
       var result : [UUID:E] = [:]
       self.objAggs.values.forEach { agg in
-        result[agg.obj!.id] = agg.obj!
+        if let o = agg.obj {
+          result[o.id] = o
+        }
       }
       return result
     }
