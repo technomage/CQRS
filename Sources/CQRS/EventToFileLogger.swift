@@ -11,7 +11,7 @@ import Combine
 import SwiftUI
 
 
-@available(iOS 13.0, macOS 10.15, *)
+@available(iOS 14.0, macOS 11.0, *)
 class FileLogSubscription<S> : Subscription where S : Subscriber, S.Input == Event {
   var id = UUID()
   var subscriber : S?
@@ -45,7 +45,7 @@ class FileLogSubscription<S> : Subscription where S : Subscriber, S.Input == Eve
   }
 }
 
-@available(iOS 13.0, macOS 10.15, *)
+@available(iOS 14.0, macOS 11.0, *)
 open class EventToFileLogger : Publisher {
   public typealias Output = Event
   public typealias Input = Event?
@@ -112,9 +112,8 @@ open class EventToFileLogger : Publisher {
             let typeName : String? = TypeTracker.keyFromType(type(of: e2))!
             if typeName == nil || TypeTracker.typeFromKey(typeName!) == nil {
               NSLog("\n\n\n#####\n##### Failed to register type \(typeName ?? "nil")\n#####\n\n\n")
-            }
-            if typeName!.contains("SetEvent<Widget") {
-              Swift.print("@@@@ Saving widget SetEvent: \(e2) typeName: \(typeName!)")
+              ErrTracker.log(Err(msg: "Coding Error",
+                                 details: "Failed to register type \(typeName ?? "nil")"))
             }
             fileHandle!.write(typeName!.data(using: .utf8)!)
             fileHandle!.write("\n".data(using: .utf8)!)
@@ -123,8 +122,9 @@ open class EventToFileLogger : Publisher {
             fileHandle!.closeFile()
           }
         } catch {
-          // TODO: Handle error so it can be presented in UI to inform user (possibly out of space)
           NSLog("#### Error in handling event log to file \(error)")
+          ErrTracker.log(Err(msg: "Error saving data to local storage",
+                             details: "\(error)"))
         }
       }
   }
@@ -168,11 +168,10 @@ open class EventToFileLogger : Publisher {
           var event : Event = try et.decode(from: json.data(using: .utf8)!)
           event.status = .cached
           evts.append(event)
-          if typeName.contains("SetEvent<Widget") {
-            Swift.print("@@@@ Loaded widget SetEvent: \(event)")
-          }
         } catch {
           NSLog("#### Error \(error) in loading event \(typeName) \(json)")
+          ErrTracker.log(Err(msg: "Coding Error",
+                             details: "Error \(error) in loading event \(typeName) \(json)"))
         }
       }
       NSLog("@@@@ \(evts.count) Events decoded")

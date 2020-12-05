@@ -13,12 +13,12 @@ public protocol DebugNamed {
   var name : String { get }
 }
 
-@available(iOS 13.0, macOS 10.15, *)
+@available(iOS 14.0, macOS 11.0, *)
 public protocol EventSubscriber {
   func receive(event:Event)
 }
 
-@available(iOS 13.0, macOS 10.15, *)
+@available(iOS 14.0, macOS 11.0, *)
 class LogSubscription<S> : Subscription where S : Subscriber, S.Input == Event {
   var id = UUID()
   var subscriber : S?
@@ -58,7 +58,7 @@ public protocol DispatchKeys {
   var dispatchKeys : [String]? { get }
 }
 
-@available(iOS 13.0, macOS 10.15, *)
+@available(iOS 14.0, macOS 11.0, *)
 open class EventLog : Subscriber, Publisher {
   public typealias Output = Event
   public typealias Input = Event?
@@ -101,7 +101,7 @@ open class EventLog : Subscriber, Publisher {
         evt.status = .queued
       }
       events.append(evt)
-      let _ = print("@@@@ Event \(inp.id.uuidString) received by log")
+//      Swift.print("@@@@ Event \(inp.id.uuidString) received by log")
       // The following feels like a kludge, since we do not know how much
       // demand is remaining
       for ds in downStreams {

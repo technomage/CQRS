@@ -9,7 +9,7 @@
 import Foundation
 import Combine
 
-@available(iOS 13.0, macOS 10.15, *)
+@available(iOS 14.0, macOS 11.0, *)
 public protocol ListEvent : Event, DispatchKeys {
   associatedtype R : Equatable,Codable
   var parent : UUID? { get }
@@ -24,7 +24,7 @@ public protocol WithID : Codable {
   var id : UUID { get }
 }
 
-@available(iOS 13.0, macOS 10.15, *)
+@available(iOS 14.0, macOS 11.0, *)
 public struct ListChange<E : WithID,R : Equatable&Codable&RoleEnum> : Equatable, ListEvent, Codable, ListEventWithParent {
   public static func == (lhs: ListChange<E,R>, rhs: ListChange<E,R>) -> Bool {
     return lhs.seq == rhs.seq && lhs.id == rhs.id && lhs.subject == rhs.subject && lhs.parent == rhs.parent && lhs.status == rhs.status && lhs.undoType == rhs.undoType && lhs.role == rhs.role

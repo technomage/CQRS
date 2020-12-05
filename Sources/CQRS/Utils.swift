@@ -9,7 +9,7 @@
 import Foundation
 import CloudKit
 
-@available(iOS 13.0, macOS 10.15, *)
+@available(iOS 14.0, macOS 11.0, *)
 public class Utils {
   public static func resetFiles() {
     print("\n\n@@@@ Resetting Files\n\n")

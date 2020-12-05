@@ -20,7 +20,7 @@ public protocol RoleEnum {
   var rawValue : String { get }
 }
 
-@available(iOS 13.0, macOS 10.15, *)
+@available(iOS 14.0, macOS 11.0, *)
 open class ListAggregator<E : ListEntry, R : Hashable&Codable&RoleEnum> : Subscriber, Identifiable, ObservableObject, Aggregator, DispatchKeys where E : Identifiable, E.ID == UUID
 {
   public typealias Input = Event

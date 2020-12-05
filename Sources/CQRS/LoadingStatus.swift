@@ -14,7 +14,7 @@ public enum LoadingState {
   case done
 }
 
-@available(iOS 13.0, macOS 10.15, *)
+@available(iOS 14.0, macOS 11.0, *)
 public class LoadingStatus: ObservableObject {
   @Published public var loading : LoadingState = .new
   @Published public var showLoading = false
@@ -27,7 +27,7 @@ public class LoadingStatus: ObservableObject {
   }
 }
 
-@available(iOS 13.0, macOS 10.15, *)
+@available(iOS 14.0, macOS 11.0, *)
 public enum Loading {
   case newFile
   case loadingFile

@@ -9,7 +9,7 @@ import Foundation
 import XCTest
 @testable import CQRS
 
-@available(iOS 13.0, macOS 10.15, *)
+@available(iOS 14.0, macOS 11.0, *)
 final class ArchiveTest: XCTestCase {
   
   override func setUp() {

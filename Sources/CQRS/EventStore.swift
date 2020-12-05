@@ -12,7 +12,7 @@ import Combine
 public protocol Aggregator {
 }
 
-@available(iOS 13.0, macOS 10.15, *)
+@available(iOS 14.0, macOS 11.0, *)
 open class EventStore : ObservableObject {
   var seq = Seq()
   @Published public var event : Event? = nil
@@ -48,7 +48,7 @@ open class EventStore : ObservableObject {
   }
 }
 
-@available(iOS 13.0, macOS 10.15, *)
+@available(iOS 14.0, macOS 11.0, *)
 open class UndoableEventStore : EventStore {
   public var undo : UndoManager?
   public var undoBatch : [Event]? = nil // Events batched together because undo manager seems to have a limit of 100 per group
@@ -110,6 +110,8 @@ open class UndoableEventStore : EventStore {
     }
     if e.seq == nil {
       print("\n\n###### Nil seq!!!! #### \(String(describing: event)) ####\n\n")
+      ErrTracker.log(Err(msg: "Coding Error",
+                         details: "Event without seq encountered during undo"))
     }
     return e
   }
@@ -139,14 +141,16 @@ open class UndoableEventStore : EventStore {
 //    }
     if e3.seq == nil {
       print("\n\n###### Nil seq!!!! #### \(String(describing: e2)) ####\n\n")
+      ErrTracker.log(Err(msg: "Coding Error",
+                         details: "Event without seq encountered during undo"))
     }
   }
 }
 
-@available(iOS 13.0, macOS 10.15, *)
+@available(iOS 14.0, macOS 11.0, *)
 public typealias Events = [Event]
 
-@available(iOS 13.0, macOS 10.15, *)
+@available(iOS 14.0, macOS 11.0, *)
 public protocol Event : Codable {
   var seq : Seq? { get set }
   var id : UUID { get set }

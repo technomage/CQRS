@@ -12,7 +12,7 @@ import CloudKit
 
 @testable import CQRS
 
-@available(iOS 13.0, macOS 10.15, *)
+@available(iOS 14.0, macOS 11.0, *)
 class EventStoreTests: XCTestCase {
   
   struct Ref {
