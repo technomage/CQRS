@@ -13,8 +13,10 @@ import Combine
 public typealias FilterClosure = (Event) -> Bool
 
 @available(iOS 14.0, macOS 11.0, *)
-open class ObjectAggregator<E : WithID&Equatable, R : Hashable&Codable&RoleEnum> : Subscriber, EventSubscriber, Identifiable, Aggregator, ObservableObject, DispatchKeys where E : Identifiable, E.ID == UUID
+open class ObjectAggregator<E : WithID&Equatable&Identifiable, R : Hashable&Codable&RoleEnum> : Subscriber, EventSubscriber, Identifiable, Aggregator, ObservableObject, Hashable, Equatable,
+  DispatchKeys where E.ID == UUID
 {
+  
   public typealias Input = Event
   public typealias Failure = Never
   
@@ -45,6 +47,16 @@ open class ObjectAggregator<E : WithID&Equatable, R : Hashable&Codable&RoleEnum>
   public convenience init(obj: E, store: UndoableEventStore?) {
     self.init(store: store, subject: obj.id)
     self.obj = obj
+  }
+  
+  public static func == (lhs: ObjectAggregator<E, R>,
+                         rhs: ObjectAggregator<E, R>) -> Bool {
+    lhs.id == rhs.id && lhs.subject == rhs.subject
+  }
+  
+  public func hash(into hasher: inout Hasher) {
+    hasher.combine(id)
+    hasher.combine(subject)
   }
   
   public var dispatchKeys : [String]? {
