@@ -16,6 +16,38 @@ public protocol ObjectEvent : Event, DispatchKeys {
 
 @available(iOS 14.0, macOS 11.0, *)
 public struct SetEvent<E,T : Codable> : Event, Equatable, ObjectEvent, Codable {
+  
+  public func patch(map: inout [UUID : UUID]) -> SetEvent<E, T> {
+    var e = self
+    e.id = UUID()
+    e.project = map[project]!
+    e.subject = map[subject]!
+    if value is [UUID] {
+      if let vs = value as? [UUID] {
+        let vals = clone(vs, map: map)
+        e.value = vals as! T
+      }
+    }
+    if prior is [UUID] {
+      if let vs = prior as? [UUID] {
+        let vals = clone(vs, map: map)
+        e.prior = vals as! T
+      }
+    }
+    return e
+  }
+  
+  public func clone(_ vs:[UUID], map:[UUID:UUID]) -> [UUID] {
+    var vals = [UUID]()
+    for v in vs {
+      if let mv = map[v] {
+        vals.append(mv)
+      } else {
+        vals.append(v)
+      }
+    }
+    return vals
+  }
 
   public static func == (lhs: SetEvent<E,T>, rhs: SetEvent<E,T>) -> Bool {
     return lhs.seq == rhs.seq && lhs.id == rhs.id && lhs.subject == rhs.subject

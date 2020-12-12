@@ -10,7 +10,7 @@ import Foundation
 import Combine
 
 @available(iOS 14.0, macOS 11.0, *)
-open class IndexedAggregator<E : ListEntry, R : Hashable&Codable&RoleEnum> : ListAggregator<E,R>
+open class IndexedAggregator<E : ListEntry&Patchable, R : Hashable&Codable&RoleEnum> : ListAggregator<E,R>
   where E : Identifiable, E.ID == UUID
 {
   private var cache : [UUID : E]? = nil

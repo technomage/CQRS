@@ -16,16 +16,34 @@ public protocol ListEvent : Event, DispatchKeys {
   var role : R? { get }
 }
 
-public protocol ListEventWithParent : Event{
-  var parent : UUID? { get set }
-}
-
-public protocol WithID : Codable {
-  var id : UUID { get }
-}
-
 @available(iOS 14.0, macOS 11.0, *)
-public struct ListChange<E : WithID,R : Equatable&Codable&RoleEnum> : Equatable, ListEvent, Codable, ListEventWithParent {
+public struct ListChange<E : WithID&Patchable,R : Equatable&Codable&RoleEnum> : Equatable, ListEvent, Codable, ListEventWithParent {
+  
+  public func patch(map: inout [UUID : UUID]) -> Self {
+    var e = self
+    e.id = UUID()
+    if let pid = map[project] {
+      e.project = pid
+    } else {
+      e.project = UUID()
+      map[project] = e.project
+    }
+    if case let .create(a, o) = e.action {
+      e.action = .create(after: a != nil ? map[a!] : nil, obj: o.patch(map: &map))
+    } else if case let .delete(a, o) = e.action {
+      e.action = .delete(after: a != nil ? map[a!] : nil, obj: o.patch(map: &map))
+    } else if case let .move(from, after, wasAfter) = e.action {
+      e.action = .move(from: map[from]!,
+                       after: after != nil ? map[after!]! : nil,
+                       wasAfter: wasAfter != nil ? map[wasAfter!]! : nil)
+    }
+    e.subject = map[subject]!
+    if parent != nil {
+      e.parent = map[parent!]!
+    }
+    return e
+  }
+  
   public static func == (lhs: ListChange<E,R>, rhs: ListChange<E,R>) -> Bool {
     return lhs.seq == rhs.seq && lhs.id == rhs.id && lhs.subject == rhs.subject && lhs.parent == rhs.parent && lhs.status == rhs.status && lhs.undoType == rhs.undoType && lhs.role == rhs.role
   }

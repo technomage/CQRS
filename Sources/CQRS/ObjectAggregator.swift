@@ -13,7 +13,7 @@ import Combine
 public typealias FilterClosure = (Event) -> Bool
 
 @available(iOS 14.0, macOS 11.0, *)
-open class ObjectAggregator<E : WithID&Equatable&Identifiable, R : Hashable&Codable&RoleEnum> : Subscriber, EventSubscriber, Identifiable, Aggregator, ObservableObject, Hashable, Equatable,
+open class ObjectAggregator<E : WithID&Equatable&Identifiable&Patchable, R : Hashable&Codable&RoleEnum> : Subscriber, EventSubscriber, Identifiable, Aggregator, ObservableObject, Hashable, Equatable,
   DispatchKeys where E.ID == UUID
 {
   

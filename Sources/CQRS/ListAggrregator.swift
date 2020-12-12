@@ -9,7 +9,7 @@
 import Foundation
 import Combine
 
-public protocol ListEntry : Equatable, WithID {
+public protocol ListEntry : Equatable, WithID, Patchable {
 }
 
 public protocol NamedListEntry : ListEntry {
@@ -21,7 +21,7 @@ public protocol RoleEnum {
 }
 
 @available(iOS 14.0, macOS 11.0, *)
-open class ListAggregator<E : ListEntry, R : Hashable&Codable&RoleEnum> : Subscriber, Identifiable, ObservableObject, Aggregator, DispatchKeys where E : Identifiable, E.ID == UUID
+open class ListAggregator<E : ListEntry&Patchable, R : Hashable&Codable&RoleEnum> : Subscriber, Identifiable, ObservableObject, Aggregator, DispatchKeys where E : Identifiable, E.ID == UUID
 {
   public typealias Input = Event
   public typealias Failure = Never
@@ -187,7 +187,7 @@ open class ListAggregator<E : ListEntry, R : Hashable&Codable&RoleEnum> : Subscr
   }
   
   /// Delete an object from the list for a given project.  This emits events that are processed in the event store.
-  public func delete(project: UUID, obj: E) {
+  open func delete(project: UUID, obj: E) {
     let prior = self.find(before: obj.id)
     let e = ListChange<E,R>(project: project, subject: obj.id,
                             action: .delete(after: prior?.id ?? nil, obj: obj))
@@ -195,14 +195,14 @@ open class ListAggregator<E : ListEntry, R : Hashable&Codable&RoleEnum> : Subscr
   }
   
   /// Move an object to a different position in the list following a given obj id
-  public func move(project: UUID, from: UUID, after: UUID?, wasAfter: UUID?) {
+  open func move(project: UUID, from: UUID, after: UUID?, wasAfter: UUID?) {
     let e = ListChange<E,R>(project: project, subject: from,
                             action: .move(from: from, after: after, wasAfter: wasAfter))
     self.store?.append(e)
   }
   
   /// Delete an object from the list with a given partent and role
-  public func delete(project: UUID, obj: E, in parent : UUID, role: R) {
+  open func delete(project: UUID, obj: E, in parent : UUID, role: R) {
     let prior = self.find(before: obj.id)
     let e = ListChange<E,R>(project: project, subject: obj.id,
                             action: .delete(after: prior?.id ?? nil, obj: obj),

@@ -151,7 +151,7 @@ open class UndoableEventStore : EventStore {
 public typealias Events = [Event]
 
 @available(iOS 14.0, macOS 11.0, *)
-public protocol Event : Codable {
+public protocol Event : Codable,Patchable {
   var seq : Seq? { get set }
   var id : UUID { get set }
   var project : UUID { get set }

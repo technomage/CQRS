@@ -201,9 +201,10 @@ open class EventToFileLogger : Publisher {
 //      NSLog("@@@@ Loading events \(i) to \(limit)")
       for ind in i ..< limit {
         savedEvents.insert(events[ind].id)
+        Swift.print("@@@@ Loading event: \(String(describing: events[ind]))")
         store.append(events[ind])
       }
-      NSLog("@@@@ Setting progress to \(limit)")
+//      NSLog("@@@@ Setting progress to \(limit)")
       progress.progress = limit
       if limit < events.count {
         self.processEvent(events, limit, store: store, progress: progress, showLoading: showLoading, onComplete: onComplete)
