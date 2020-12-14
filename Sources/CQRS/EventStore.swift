@@ -65,7 +65,7 @@ open class UndoableEventStore : EventStore {
   }
   
   public func endUndoBatch() {
-    if undoBatch != nil {
+    if undoBatch != nil && (undoBatch?.count ?? 0) > 0 {
       print("\n\n@@@@ End undo batch with \(undoBatch!.count) events")
       let batch = undoBatch!
       undoBatch = nil

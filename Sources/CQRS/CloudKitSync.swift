@@ -17,6 +17,16 @@ public enum SyncStatus : String {
   case connected
   case offline
   case error
+  case manual
+}
+
+public enum ICloudSyncMode : String, CaseIterable, Identifiable {
+  case manual
+  case auto
+  
+  public var id : String {
+    rawValue
+  }
 }
 
 @available(iOS 14.0, macOS 11.0, *)
@@ -26,7 +36,8 @@ public class CloudKitSync : Subscriber {
 
   public static var debugFilter : (_:Event) -> Bool = {e in false}
   
-  @Published public var status : SyncStatus = .starting
+  @Published public var syncMode : ICloudSyncMode = .auto
+  @Published public var status : SyncStatus = .manual
   @Published public var readCount : Int = 0
   @Published public var writeCount : Int = 0
   
@@ -263,6 +274,7 @@ public class CloudKitSync : Subscriber {
 
   /// Connect to cloudkit
   public func connect() {
+    status = .starting
     let container = CKContainer.default()
     
     container.requestApplicationPermission(.userDiscoverability) { (status, error) in
@@ -571,5 +583,10 @@ public class CloudKitSync : Subscriber {
   public func receive(completion: Subscribers.Completion<Never>) {
     sub?.cancel()
     sub = nil
+  }
+  
+  /// Perform a manual sync
+  public func syncNow() {
+    
   }
 }

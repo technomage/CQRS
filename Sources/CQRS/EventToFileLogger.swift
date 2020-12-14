@@ -158,7 +158,7 @@ open class EventToFileLogger : Publisher {
       let data = fileHandle!.readDataToEndOfFile()
       let str = String(data: data, encoding: .utf8)!
       let events = str.components(separatedBy: "\n")
-      NSLog("@@@@ Found \(events.count) lines read from file")
+//      NSLog("@@@@ Found \(events.count) lines read from file")
       var evts = [Event]()
       for i in stride(from: 0, to: events.count-1, by: 2) {
         let typeName = events[i]
@@ -174,9 +174,9 @@ open class EventToFileLogger : Publisher {
                              details: "Error \(error) in loading event \(typeName) \(json)"))
         }
       }
-      NSLog("@@@@ \(evts.count) Events decoded")
+//      NSLog("@@@@ \(evts.count) Events decoded")
       DispatchQueue.main.async {
-        NSLog("@@@@ Setting progress total to \(evts.count)")
+//        NSLog("@@@@ Setting progress total to \(evts.count)")
         progress.total = evts.count
 //        NSLog("@@@@ Showing loading screen")
 //        showLoading.loading = true
@@ -186,8 +186,8 @@ open class EventToFileLogger : Publisher {
         self.processEvent(evts, 0, store: store, progress: progress, showLoading: showLoading, onComplete: onComplete)
       } else {
         DispatchQueue.main.async {
-          NSLog("@@@@ No Events loaded")
-          showLoading.loading = .done
+//          NSLog("@@@@ No Events loaded")
+//          showLoading.loading = .done
           onComplete(.loadingFile)
         }
       }
@@ -201,7 +201,7 @@ open class EventToFileLogger : Publisher {
 //      NSLog("@@@@ Loading events \(i) to \(limit)")
       for ind in i ..< limit {
         savedEvents.insert(events[ind].id)
-        Swift.print("@@@@ Loading event: \(String(describing: events[ind]))")
+//        Swift.print("@@@@ Loading event: \(String(describing: events[ind]))")
         store.append(events[ind])
       }
 //      NSLog("@@@@ Setting progress to \(limit)")
@@ -209,8 +209,8 @@ open class EventToFileLogger : Publisher {
       if limit < events.count {
         self.processEvent(events, limit, store: store, progress: progress, showLoading: showLoading, onComplete: onComplete)
       } else {
-        NSLog("@@@@ Events loaded")
-        showLoading.loading = .done
+//        NSLog("@@@@ Events loaded")
+//        showLoading.loading = .done
         onComplete(.loadingFile)
       }
     }
