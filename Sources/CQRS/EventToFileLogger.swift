@@ -111,7 +111,7 @@ open class EventToFileLogger : Publisher {
             fileHandle?.seekToEndOfFile()
             let typeName : String? = TypeTracker.keyFromType(type(of: e2))!
             if typeName == nil || TypeTracker.typeFromKey(typeName!) == nil {
-              NSLog("\n\n\n#####\n##### Failed to register type \(typeName ?? "nil")\n#####\n\n\n")
+              Swift.print("\n\n\n#####\n##### Failed to register type \(typeName ?? "nil")\n#####\n\n\n")
               ErrTracker.log(Err(msg: "Coding Error",
                                  details: "Failed to register type \(typeName ?? "nil")"))
             }
@@ -122,7 +122,7 @@ open class EventToFileLogger : Publisher {
             fileHandle!.closeFile()
           }
         } catch {
-          NSLog("#### Error in handling event log to file \(error)")
+          Swift.print("#### Error in handling event log to file \(error)")
           ErrTracker.log(Err(msg: "Error saving data to local storage",
                              details: "\(error)"))
         }
@@ -169,7 +169,7 @@ open class EventToFileLogger : Publisher {
           event.status = .cached
           evts.append(event)
         } catch {
-          NSLog("#### Error \(error) in loading event \(typeName) \(json)")
+          Swift.print("#### Error \(error) in loading event \(typeName) \(json)")
           ErrTracker.log(Err(msg: "Coding Error",
                              details: "Error \(error) in loading event \(typeName) \(json)"))
         }

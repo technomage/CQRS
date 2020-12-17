@@ -17,10 +17,16 @@ public protocol ObjectEvent : Event, DispatchKeys {
 @available(iOS 14.0, macOS 11.0, *)
 public struct SetEvent<E,T : Codable> : Event, Equatable, ObjectEvent, Codable {
   
-  public func patch(map: inout [UUID : UUID]) -> SetEvent<E, T> {
+  public func patch(map: inout [UUID : UUID]) -> SetEvent<E, T>? {
     var e = self
     e.id = UUID()
     e.project = map[project]!
+    if map[subject] == nil {
+      print("#### No subject found for \(subject) in \(String(describing: self))")
+      ErrTracker.log(Err(msg: "Error in cloning project",
+                         details: "Failed to find subject for event in cloned project: \(String(describing: self)) map keys: \(String(describing: Array(map.keys)))"))
+      return nil
+    }
     e.subject = map[subject]!
     if value is [UUID] {
       if let vs = value as? [UUID] {

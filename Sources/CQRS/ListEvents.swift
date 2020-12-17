@@ -19,7 +19,7 @@ public protocol ListEvent : Event, DispatchKeys {
 @available(iOS 14.0, macOS 11.0, *)
 public struct ListChange<E : WithID&Patchable,R : Equatable&Codable&RoleEnum> : Equatable, ListEvent, Codable, ListEventWithParent {
   
-  public func patch(map: inout [UUID : UUID]) -> Self {
+  public func patch(map: inout [UUID : UUID]) -> Self? {
     var e = self
     e.id = UUID()
     if let pid = map[project] {
@@ -29,9 +29,17 @@ public struct ListChange<E : WithID&Patchable,R : Equatable&Codable&RoleEnum> : 
       map[project] = e.project
     }
     if case let .create(a, o) = e.action {
-      e.action = .create(after: a != nil ? map[a!] : nil, obj: o.patch(map: &map))
+      if let obj = o.patch(map: &map) {
+        e.action = .create(after: a != nil ? map[a!] : nil, obj: obj)
+      } else {
+        return nil
+      }
     } else if case let .delete(a, o) = e.action {
-      e.action = .delete(after: a != nil ? map[a!] : nil, obj: o.patch(map: &map))
+      if let obj = o.patch(map: &map) {
+        e.action = .delete(after: a != nil ? map[a!] : nil, obj: obj)
+      } else {
+        return nil
+      }
     } else if case let .move(from, after, wasAfter) = e.action {
       e.action = .move(from: map[from]!,
                        after: after != nil ? map[after!]! : nil,

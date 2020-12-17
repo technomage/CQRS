@@ -111,7 +111,6 @@ public class CloudKitSync : Subscriber {
             self.saveQueuedEvents()
           } else {
             // TODO: custom error handling
-            NSLog("#### Error in creating custom CloudKit zone \(String(describing: error))")
             print("#### Error in creating custom CloudKit zone \(String(describing: error))")
             ErrTracker.log(Err(msg: "CloudKit not working",
                                details: "Error in creating CloudKit zone: \(String(describing: error))"))
@@ -157,7 +156,6 @@ public class CloudKitSync : Subscriber {
         ErrTracker.log(Err(msg: "Failed to fetch records from CloudKit",
                            details: "Error in fetching CloudKit records: \(String(describing: error))"))
         self.status = .error
-        NSLog("#### Error in fetching roots from zone \(String(describing: self.zone)): \(String(describing: error))")
         print("#### Error in fetching roots from zone \(String(describing: self.zone)): \(String(describing: error))")
       }
       NSLog("@@@@ loaded \(self.projectRecords.count) roots")
@@ -215,7 +213,6 @@ public class CloudKitSync : Subscriber {
           do {
             data = try Data(contentsOf: asset.fileURL!)
           } catch {
-            NSLog("#### Error \(error) in loading event \(typeName)")
             print("#### Error \(error) in loading event \(typeName)")
             ErrTracker.log(Err(msg: "Failed to load data from iCloud",
                                details: "Error in loading \(typeName) event: \(String(describing: error))"))
@@ -228,11 +225,12 @@ public class CloudKitSync : Subscriber {
           let event : Event = try et.decode(from: data!)
           if event.id != eventId {
             print("########## Event read from icloud without proper id #############")
+            ErrTracker.log(Err(msg: "ICloud Coding Error",
+                               details: "ICloud event without proper ID"))
           }
           self.pendingReads.append(event)
         } catch {
           let json : String = String(data: data!, encoding: .utf8)!
-          NSLog("#### Error \(error) in loading event \(typeName) \(json)")
           print("#### Error \(error) in loading event \(typeName) \(json)")
           ErrTracker.log(Err(msg: "Error loading data from iCloud",
                              details: "Error loading event \(typeName): \(error)"))
@@ -245,7 +243,6 @@ public class CloudKitSync : Subscriber {
         let op = CKQueryOperation(cursor: recs!)
         self.fetchRecords(op, callback: callback)
       } else if error != nil {
-        NSLog("#### Error in fetching records from zone \(String(describing: self.zone)): \(String(describing: error))")
         print("#### Error in fetching records from zone \(String(describing: self.zone)): \(String(describing: error))")
         ErrTracker.log(Err(msg: "Error in fetching data from iCloud",
                            details: "Error in fetching CloudKit records from zone: \(String(describing: self.zone)): \(String(describing: error))"))
@@ -279,7 +276,6 @@ public class CloudKitSync : Subscriber {
     
     container.requestApplicationPermission(.userDiscoverability) { (status, error) in
       guard error == nil else {
-        NSLog("#### Failed to get user discovery permission \(String(describing: error))")
         print("#### Failed to get user discovery permission \(String(describing: error))")
         ErrTracker.log(Err(msg: "User Discovery permission not found",
                            details: "Failed to get user discovery permission: \(String(describing: error))"))
@@ -288,7 +284,6 @@ public class CloudKitSync : Subscriber {
       }
       container.accountStatus { accountStatus, error in
         guard error == nil else {
-          NSLog("#### Failed to get account status \(String(describing: error))")
           print("#### Failed to get account status \(String(describing: error))")
           ErrTracker.log(Err(msg: "Failed to get iCloud account status",
                              details: "Failed to get account status: \(String(describing: error))"))
@@ -307,7 +302,6 @@ public class CloudKitSync : Subscriber {
             }
             container.discoverUserIdentity(withUserRecordID: userRecordID) { (userID, error) in
               if error != nil {
-                NSLog("#### Error in getting user info \(String(describing: error))")
                 print("#### Error in getting user info \(String(describing: error))")
                 ErrTracker.log(Err(msg: "Error in getting user info from iCloud",
                                    details: "Error in getting user info: \(String(describing: error))"))
@@ -400,7 +394,6 @@ public class CloudKitSync : Subscriber {
             }
           }
         } catch {
-          NSLog("#### Error in saving queued events \(String(describing: error))")
           print("#### Error in saving queued events \(String(describing: error))")
           // Error handling
           ErrTracker.log(Err(msg: "Error in saving data to iCloud",
@@ -465,7 +458,6 @@ public class CloudKitSync : Subscriber {
       op.recordsToSave = [rec]
       op.modifyRecordsCompletionBlock = { roots, _, error in
         guard error == nil else {
-          NSLog("#### Error in saving project root to icloud \(project): \(String(describing: error))")
           print("#### Error in saving project root to icloud \(project): \(String(describing: error))")
           ErrTracker.log(Err(msg: "Unable to save project to iCloud",
                              details: "\(String(describing: error))"))
@@ -538,7 +530,6 @@ public class CloudKitSync : Subscriber {
     op.recordsToSave = recs
     op.modifyRecordsCompletionBlock = { _, _, error in
       guard error == nil else {
-        NSLog("#### Error in saving event \(String(describing: error))")
         print("#### Error in saving event \(String(describing: error))")
         ErrTracker.log(Err(msg: "Error in saving data to iCloud",
                            details: "\(String(describing: error))"))
@@ -567,7 +558,6 @@ public class CloudKitSync : Subscriber {
     op.recordsToSave = [rec]
     op.modifyRecordsCompletionBlock = { _, _, error in
       guard error == nil else {
-        NSLog("#### Error in saving event \(String(describing: error))")
         print("#### Error in saving event \(String(describing: error))")
         ErrTracker.log(Err(msg: "Error in saving data to iCloud",
                            details: "\(String(describing: error))"))

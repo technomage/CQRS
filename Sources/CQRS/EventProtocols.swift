@@ -16,5 +16,5 @@ public protocol WithID : Codable {
 }
 
 public protocol Patchable {
-  func patch(map: inout [UUID:UUID]) -> Self
+  func patch(map: inout [UUID:UUID]) -> Self?
 }
