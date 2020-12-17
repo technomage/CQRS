@@ -22,12 +22,12 @@ public struct ListChange<E : WithID&Patchable,R : Equatable&Codable&RoleEnum> : 
   public func patch(map: inout [UUID : UUID]) -> Self? {
     var e = self
     e.id = UUID()
-    if let pid = map[project] {
-      e.project = pid
-    } else {
-      e.project = UUID()
-      map[project] = e.project
-    }
+//    if let pid = map[project] {
+//      e.project = pid
+//    } else {
+//      e.project = UUID()
+//      map[project] = e.project
+//    }
     if case let .create(a, o) = e.action {
       if let obj = o.patch(map: &map) {
         e.action = .create(after: a != nil ? map[a!] : nil, obj: obj)
