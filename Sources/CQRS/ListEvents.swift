@@ -21,19 +21,23 @@ public struct ListChange<E : WithID&Patchable,R : Equatable&Codable&RoleEnum> : 
   
   public func patch(map: inout [UUID : UUID]) -> Self? {
     var e = self
-    e.id = UUID()
-//    if let pid = map[project] {
-//      e.project = pid
-//    } else {
-//      e.project = UUID()
-//      map[project] = e.project
-//    }
+    if let _ = map[id] {
+      return nil
+    } else {
+      e.id = UUID()
+      map[id] = e.id
+    }
     if case let .create(a, o) = e.action {
-      if let obj = o.patch(map: &map) {
-        e.action = .create(after: a != nil ? map[a!] : nil, obj: obj)
-      } else {
-        return nil
-      }
+//      if map[subject] != nil {
+////        print("@@@@ Duplicate create")
+//        return nil
+//      } else {
+        if let obj = o.patch(map: &map) {
+          e.action = .create(after: a != nil ? map[a!] : nil, obj: obj)
+        } else {
+          return nil
+        }
+//      }
     } else if case let .delete(a, o) = e.action {
       if let obj = o.patch(map: &map) {
         e.action = .delete(after: a != nil ? map[a!] : nil, obj: obj)
@@ -45,9 +49,10 @@ public struct ListChange<E : WithID&Patchable,R : Equatable&Codable&RoleEnum> : 
                        after: after != nil ? map[after!]! : nil,
                        wasAfter: wasAfter != nil ? map[wasAfter!]! : nil)
     }
+    e.project = map[project]!
     e.subject = map[subject]!
-    if parent != nil {
-      e.parent = map[parent!]!
+    if let p = parent, let par = map[p] {
+      e.parent = par
     }
     return e
   }

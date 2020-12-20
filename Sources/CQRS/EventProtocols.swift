@@ -11,8 +11,8 @@ public protocol ListEventWithParent : Event {
   var parent : UUID? { get set }
 }
 
-public protocol WithID : Codable {
-  var id : UUID { get }
+public protocol WithID : Codable, Identifiable where ID == UUID {
+  var id : ID { get }
 }
 
 public protocol Patchable {

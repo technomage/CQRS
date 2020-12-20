@@ -19,7 +19,12 @@ public struct SetEvent<E,T : Codable> : Event, Equatable, ObjectEvent, Codable {
   
   public func patch(map: inout [UUID : UUID]) -> SetEvent<E, T>? {
     var e = self
-    e.id = UUID()
+    if let _ = map[id] {
+      return nil
+    } else {
+      e.id = UUID()
+      map[id] = e.id
+    }
     e.project = map[project]!
     if map[subject] == nil {
       print("#### No subject found for \(subject) in \(String(describing: self))")

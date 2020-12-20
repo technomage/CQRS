@@ -21,7 +21,7 @@ public protocol RoleEnum {
 }
 
 @available(iOS 14.0, macOS 11.0, *)
-open class ListAggregator<E : ListEntry&Patchable, R : Hashable&Codable&RoleEnum> : Subscriber, Identifiable, ObservableObject, Aggregator, DispatchKeys where E : Identifiable, E.ID == UUID
+open class ListAggregator<E : ListEntry&Patchable, R : Hashable&Codable&RoleEnum> : Subscriber, Identifiable, ObservableObject, Aggregator, DispatchKeys
 {
   public typealias Input = Event
   public typealias Failure = Never
