@@ -8,6 +8,7 @@
 
 import Foundation
 
+@available(iOS 14.0, *)
 public struct KeyPathTracker {
   static var keyPathToKey = [AnyKeyPath : String]()
   static var keyToKeyPath = [String : AnyKeyPath]()
@@ -20,6 +21,11 @@ public struct KeyPathTracker {
     return KeyPathTracker.keyToKeyPath[key]!
   }
   static func key(for path: AnyKeyPath) -> String {
-    return KeyPathTracker.keyPathToKey[path]!
+    if let name = KeyPathTracker.keyPathToKey[path] {
+      return name
+    } else {
+      ErrTracker.log(Err(msg: "Coding Error", details: "Failed to register key path: \(path)"))
+      return ""
+    }
   }
 }

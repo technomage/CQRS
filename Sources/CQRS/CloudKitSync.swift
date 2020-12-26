@@ -41,7 +41,6 @@ public class CloudKitSync : Subscriber {
   @Published public var readCount : Int = 0
   @Published public var writeCount : Int = 0
   
-//  public var stream = EventLog()
   public var store : UndoableEventStore?
   
   var sub : Subscription?
@@ -66,8 +65,8 @@ public class CloudKitSync : Subscriber {
   private var dispatch = DispatchQueue(label: "com.technomage.icloudSync", qos: .userInitiated, attributes: DispatchQueue.Attributes(), autoreleaseFrequency: .workItem, target: nil)
   
   public init(zoneName : String) {
-    NSLog("\n\n@@@@ Creating IcloudKitSync")
-    print("\n\n@@@@ Creating ICloudKitSync")
+//    NSLog("\n\n@@@@ Creating IcloudKitSync")
+//    print("\n\n@@@@ Creating ICloudKitSync")
     self.zoneName = zoneName
     // default init
     container = CKContainer.default()

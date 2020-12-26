@@ -14,7 +14,7 @@ public typealias FilterClosure = (Event) -> Bool
 
 @available(iOS 14.0, macOS 11.0, *)
 open class ObjectAggregator<E : WithID&Equatable&Identifiable&Patchable, R : Hashable&Codable&RoleEnum> : Subscriber, EventSubscriber, Identifiable, Aggregator, ObservableObject, Hashable, Equatable,
-  DispatchKeys where E.ID == UUID
+  DispatchKeys
 {
   
   public typealias Input = Event
@@ -82,7 +82,9 @@ open class ObjectAggregator<E : WithID&Equatable&Identifiable&Patchable, R : Has
   }
 
   open func receive(event: Event) {
+//    Swift.print("@@@@ Received event \(event) in \(self)")
     if self.test(event) {
+//      Swift.print("@@@@ passed test event \(event) in \(self)")
       if let evt = event as? ListChange<E,R> {
         self.events.append(evt)
         self.eventIds.insert(evt.id)
@@ -96,6 +98,7 @@ open class ObjectAggregator<E : WithID&Equatable&Identifiable&Patchable, R : Has
         }
       }
       if let o = self.obj, let evt = event as? ObjectEvent {
+//        Swift.print("@@@@ Applying object event \(event) in \(self)")
         self.events.append(evt)
         self.eventIds.insert(evt.id)
         self.obj = evt.apply(to: o)

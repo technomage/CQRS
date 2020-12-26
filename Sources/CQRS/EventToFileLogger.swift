@@ -158,7 +158,7 @@ open class EventToFileLogger : Publisher {
       let data = fileHandle!.readDataToEndOfFile()
       let str = String(data: data, encoding: .utf8)!
       let events = str.components(separatedBy: "\n")
-//      NSLog("@@@@ Found \(events.count) lines read from file")
+      NSLog("@@@@ Found \(events.count) lines read from file")
       var evts = [Event]()
       for i in stride(from: 0, to: events.count-1, by: 2) {
         let typeName = events[i]
@@ -204,6 +204,7 @@ open class EventToFileLogger : Publisher {
     }
     DispatchQueue.main.async {
       for ind in i ..< limit {
+        Swift.print("@@@@ Loaded event: \(events[ind])")
         store.append(events[ind])
       }
 //      NSLog("@@@@ Setting progress to \(limit)")

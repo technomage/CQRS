@@ -69,6 +69,10 @@ open class EventLog : Subscriber, Publisher {
   var upStream : Subscription?
   public var events : Events = []
   
+  public init() {
+    Swift.print("@@@@ Creating EventLog")
+  }
+  
   public func receive<S>(subscriber: S) where S : Subscriber, EventLog.Failure == S.Failure, EventLog.Output == S.Input {
 //    NSLog("@@@@ Subscription to log by \(subscriber) with \(downStreams.count) subscriptions current")
     let sub : LogSubscription<S> = LogSubscription<S>(subscriber: subscriber, log: self)
@@ -79,6 +83,7 @@ open class EventLog : Subscriber, Publisher {
           var subs = dsKeyed[k] ?? []
           subs.append(sub)
           dsKeyed[k] = subs
+//          Swift.print("\n\n@@@@ Registring dispatch key subscriber \(String(describing: k)): \(sub) subs: \(subs.count) dsKeyed: \(dsKeyed)\n\n")
         }
       } else {
         downStreams.append(sub)
@@ -95,6 +100,7 @@ open class EventLog : Subscriber, Publisher {
   }
   
   public func receive(_ input: Event?) -> Subscribers.Demand {
+//    Swift.print("\n\n\n@@@@ Dispatching event \(input) with dsKeyed: \(dsKeyed)\n\n")
     if let inp = input {
       var evt = inp
       if evt.status == .new {
@@ -113,7 +119,9 @@ open class EventLog : Subscriber, Publisher {
       }
       if inp is DispatchKeys {
         let keys = (inp as! DispatchKeys).dispatchKeys
+//        Swift.print("@@@@ Dispatching event \(inp) for keys: \(String(describing: keys))")
         for k in keys ?? [] {
+//          Swift.print("@@@@    DsKeys for event \(k): \(dsKeyed[k])")
           for ds in dsKeyed[k] ?? [] {
             if ds is EventSubscriber {
               (ds as! EventSubscriber).receive(event: inp)

@@ -111,6 +111,7 @@ public struct SetEvent<E,T : Codable> : Event, Equatable, ObjectEvent, Codable {
   public func applyPath(to obj : E, path: WritableKeyPath<E,T>) -> E {
     var o : E = obj
     o[keyPath: path] = value
+    print("@@@@ Apply keypath to \(obj) -> \(o) value: \(value)")
     return o
   }
   
