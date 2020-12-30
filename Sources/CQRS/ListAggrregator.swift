@@ -272,12 +272,17 @@ open class ListAggregator<E : ListEntry&Patchable, R : Hashable&Codable&RoleEnum
                   return ele
                 }
               }
-          }
-        case .delete :
+            }
+        case .delete(_, let obj) :
           let index = indexFor(id: input.subject)
-          if index != nil {
-            self.list.remove(at: index!)
-            listOfIDs.remove(at: index!)
+//          print("@@@@ Delete \(obj) at \(index) in \(list)")
+          if let ind = index {
+            list.remove(at: ind)
+            listOfIDs.remove(at: ind)
+          } else {
+            print("@@@@ DId not find object in list index, resorting to filtering!!!")
+            listOfIDs = listOfIDs.filter{ id in id != input.subject }
+            list = list.filter { e in e.id != input.subject }
           }
           self.objCancels[input.subject]?.cancel()
           self.objCancels[input.subject] = nil

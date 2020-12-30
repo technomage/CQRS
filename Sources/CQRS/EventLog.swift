@@ -70,7 +70,7 @@ open class EventLog : Subscriber, Publisher {
   public var events : Events = []
   
   public init() {
-    Swift.print("@@@@ Creating EventLog")
+//    Swift.print("@@@@ Creating EventLog")
   }
   
   public func receive<S>(subscriber: S) where S : Subscriber, EventLog.Failure == S.Failure, EventLog.Output == S.Input {

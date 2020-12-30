@@ -21,7 +21,7 @@ public class LoadingStatus: ObservableObject {
   var cancel : AnyCancellable?
   public init() {
     self.cancel = self.$loading.sink { l in
-      NSLog("@@@@ Updated loading status: \(l == .loading)")
+//      print("@@@@ Updated loading status: \(l == .loading)")
       self.showLoading = l == .loading
     }
   }

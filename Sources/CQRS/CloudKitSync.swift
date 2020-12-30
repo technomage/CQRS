@@ -142,13 +142,13 @@ public class CloudKitSync : Subscriber {
     op.queuePriority = .veryHigh
     op.recordFetchedBlock = { rec in
       let p = UUID(uuidString: rec.recordID.recordName)
-      NSLog("@@@@ Found root for \(p!.uuidString)")
+//      print("@@@@ Found root for \(p!.uuidString)")
       self.projectRecords[p!] = rec.recordID
       callback(p!)
     }
     op.queryCompletionBlock = { recs, error in
       if error == nil && recs != nil {
-        NSLog("@@@@ Getting next batch of events")
+//        print("@@@@ Getting next batch of events")
         let op = CKQueryOperation(cursor: recs!)
         self.fetchRoots(op, callback: callback)
       } else if error != nil {
@@ -157,7 +157,7 @@ public class CloudKitSync : Subscriber {
         self.status = .error
         print("#### Error in fetching roots from zone \(String(describing: self.zone)): \(String(describing: error))")
       }
-      NSLog("@@@@ loaded \(self.projectRecords.count) roots")
+//      NSLog("@@@@ loaded \(self.projectRecords.count) roots")
     }
     self.privateDB.add(op)
   }
@@ -250,14 +250,13 @@ public class CloudKitSync : Subscriber {
         let sorted = self.pendingReads.sorted { (a,b) -> Bool in
           return a.seq!.sortableString < b.seq!.sortableString
         }
-        print("@@@@ Loaded \(sorted.count) iCloud events")
+//        print("@@@@ Loaded \(sorted.count) iCloud events")
         self.pendingReads = []
         self.readCount += sorted.count
         for e in sorted {
-//          if CloudKitSync.debugFilter(e) {
-          print("@@@@ Debug Event \(e.seq!.sortableString): \(String(describing: e))")
-//          }
-//          self.stream.send(e)
+          if CloudKitSync.debugFilter(e) {
+            print("@@@@ Debug Event \(e.seq!.sortableString): \(String(describing: e))")
+          }
           DispatchQueue.main.async {
             self.store?.append(e)
           }
@@ -292,8 +291,7 @@ public class CloudKitSync : Subscriber {
         if accountStatus == .available {
           container.fetchUserRecordID { (recordID, error) in
             guard let userRecordID = recordID else {
-              NSLog("@@@@ No user ID available")
-              print("@@@@ No user ID available")
+//              print("@@@@ No user ID available")
               ErrTracker.log(Err(msg: "Unable to get user ID for iCloud",
                                  details: "No user ID available: \(String(describing: error))"))
               self.status = .offline
