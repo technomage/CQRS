@@ -10,9 +10,8 @@ import Foundation
 import Combine
 
 @available(iOS 14.0, macOS 11.0, *)
-open class IndexedAggregator<E : ListEntry&Patchable, R : Hashable&Codable&RoleEnum> : ListAggregator<E,R>
-  where E : Identifiable, E.ID == UUID
-{
+open class IndexedAggregator<E : ListEntry&Patchable,
+                             R : Hashable&Codable&RoleEnum> : ListAggregator<E,R> {
   private var cache : [UUID : E]? = nil
   
   open override func receive(_ input: Event) -> Subscribers.Demand {

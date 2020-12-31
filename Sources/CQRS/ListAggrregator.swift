@@ -273,9 +273,8 @@ open class ListAggregator<E : ListEntry&Patchable, R : Hashable&Codable&RoleEnum
                 }
               }
             }
-        case .delete(_, let obj) :
+        case .delete :
           let index = indexFor(id: input.subject)
-//          print("@@@@ Delete \(obj) at \(index) in \(list)")
           if let ind = index {
             list.remove(at: ind)
             listOfIDs.remove(at: ind)
