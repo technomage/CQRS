@@ -265,12 +265,15 @@ open class ListAggregator<E : ListEntry&Patchable, R : Hashable&Codable&RoleEnum
             .receive(on: RunLoop.main).sink { o in
               // NSLog("@@@@ Updating list \(self.name) with object change \(o)\n\n")
               // TODO: Use index map to update list rather than build a new one?
-              self.list = self.list.map { ele in
+              let newList : [E] = self.list.map { ele in
                 if ele.id == o?.id {
                   return o!
                 } else {
                   return ele
                 }
+              }
+              if newList != self.list {
+                self.list = newList
               }
             }
         case .delete :
