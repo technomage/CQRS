@@ -117,7 +117,12 @@ open class EventToFileLogger : Publisher {
             }
             fileHandle!.write(typeName!.data(using: .utf8)!)
             fileHandle!.write("\n".data(using: .utf8)!)
-            fileHandle!.write(data)
+            if data.count < 900_000 {
+              fileHandle!.write(data)
+            } else {
+              fileHandle!.write("|\(e.id)".data(using: .utf8)!)
+              self.writeAttachment(e.id.uuidString, json: data)
+            }
             fileHandle!.write("\n".data(using: .utf8)!)
             fileHandle!.closeFile()
           }
@@ -162,7 +167,11 @@ open class EventToFileLogger : Publisher {
       var evts = [Event]()
       for i in stride(from: 0, to: events.count-1, by: 2) {
         let typeName = events[i]
-        let json = events[i+1]
+        var json = events[i+1]
+        if json.hasPrefix("|") {
+          let uuid = String(json.split(separator: "|")[0])
+          json = self.readAttachment(uuid)
+        }
         let et : Event.Type = TypeTracker.typeFromKey(typeName) as! Event.Type
         do {
           var event : Event = try et.decode(from: json.data(using: .utf8)!)
@@ -193,6 +202,30 @@ open class EventToFileLogger : Publisher {
       }
     }
     return .startLoadingFile
+  }
+  
+  func readAttachment(_ fn : String) -> String {
+    guard let documentsDirectory = FileManager.default
+            .urls(for: .documentDirectory, in: .userDomainMask).first
+    else { return "" }
+    docDirectory = documentsDirectory
+    path = documentsDirectory.appendingPathComponent(fn)
+    guard path != nil else { return ""}
+    let fileHandle = try? FileHandle(forReadingFrom: path!)
+    let data = fileHandle!.readDataToEndOfFile()
+    return String(data: data, encoding: .utf8)!
+  }
+  
+  func writeAttachment(_ fn: String, json: Data) {
+    guard let documentsDirectory = FileManager.default
+            .urls(for: .documentDirectory, in: .userDomainMask).first
+    else { return }
+    docDirectory = documentsDirectory
+    path = documentsDirectory.appendingPathComponent(fn)
+    guard path != nil else { return }
+    FileManager.default.createFile(atPath: path!.path, contents: nil)
+    let fileHandle = try? FileHandle(forWritingTo: path!)
+    fileHandle!.write(json)
   }
   
   func processEvent(_ events:[Event], _ i:Int, store: UndoableEventStore, progress:Progress, showLoading: LoadingStatus, onComplete: @escaping (_ : Loading) -> Void) {
