@@ -117,12 +117,12 @@ open class EventToFileLogger : Publisher {
             }
             fileHandle!.write(typeName!.data(using: .utf8)!)
             fileHandle!.write("\n".data(using: .utf8)!)
-            if data.count < 900_000 {
+//            if data.count < 900_000 {
               fileHandle!.write(data)
-            } else {
-              fileHandle!.write("|\(e.id)".data(using: .utf8)!)
-              self.writeAttachment(e.id.uuidString, json: data)
-            }
+//            } else {
+//              fileHandle!.write("|\(e.id)".data(using: .utf8)!)
+//              self.writeAttachment(e.id.uuidString, json: data)
+//            }
             fileHandle!.write("\n".data(using: .utf8)!)
             fileHandle!.closeFile()
           }
@@ -169,9 +169,12 @@ open class EventToFileLogger : Publisher {
         let typeName = events[i]
         var json = events[i+1]
         if json.hasPrefix("|") {
-          let uuid = String(json.split(separator: "|")[0])
-          json = self.readAttachment(uuid)
+          continue;
         }
+//          let uuid = String(json.split(separator: "|")[0])
+//          json = self.readAttachment(uuid)
+//        }
+        Swift.print("@@@@ Loading event from file \(typeName): \(json)")
         let et : Event.Type = TypeTracker.typeFromKey(typeName) as! Event.Type
         do {
           var event : Event = try et.decode(from: json.data(using: .utf8)!)
@@ -212,8 +215,13 @@ open class EventToFileLogger : Publisher {
     path = documentsDirectory.appendingPathComponent(fn)
     guard path != nil else { return ""}
     let fileHandle = try? FileHandle(forReadingFrom: path!)
-    let data = fileHandle!.readDataToEndOfFile()
-    return String(data: data, encoding: .utf8)!
+    if fileHandle == nil {
+      Swift.print("#### Failed to read attachment")
+      return ""
+    } else {
+      let data = fileHandle!.readDataToEndOfFile()
+      return String(data: data, encoding: .utf8)!
+    }
   }
   
   func writeAttachment(_ fn: String, json: Data) {
@@ -225,10 +233,16 @@ open class EventToFileLogger : Publisher {
     guard path != nil else { return }
     FileManager.default.createFile(atPath: path!.path, contents: nil)
     let fileHandle = try? FileHandle(forWritingTo: path!)
-    fileHandle!.write(json)
+    if fileHandle == nil {
+      Swift.print("#### Failed to write attachment")
+    } else {
+      fileHandle!.write(json)
+    }
   }
   
-  func processEvent(_ events:[Event], _ i:Int, store: UndoableEventStore, progress:Progress, showLoading: LoadingStatus, onComplete: @escaping (_ : Loading) -> Void) {
+  func processEvent(_ events:[Event], _ i:Int, store: UndoableEventStore,
+                    progress:Progress, showLoading: LoadingStatus,
+                    onComplete: @escaping (_ : Loading) -> Void) {
     let limit = Swift.min(i+100, events.count)
     EventToFileLogger.queue.async {
       for ind in i ..< limit {
