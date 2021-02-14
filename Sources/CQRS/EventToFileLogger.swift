@@ -174,7 +174,7 @@ open class EventToFileLogger : Publisher {
 //          let uuid = String(json.split(separator: "|")[0])
 //          json = self.readAttachment(uuid)
 //        }
-        Swift.print("@@@@ Loading event from file \(typeName): \(json)")
+//        Swift.print("@@@@ Loading event from file \(typeName): \(json)")
         let et : Event.Type = TypeTracker.typeFromKey(typeName) as! Event.Type
         do {
           var event : Event = try et.decode(from: json.data(using: .utf8)!)
