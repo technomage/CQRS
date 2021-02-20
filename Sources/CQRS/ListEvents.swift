@@ -23,6 +23,19 @@ public protocol WithProject {
 @available(iOS 14.0, macOS 11.0, *)
 public struct ListChange<E : WithID&Patchable,R : Equatable&Codable&RoleEnum> : Equatable, ListEvent, Codable, ListEventWithParent {
   
+  private func safelyPatch(obj: E, map: inout [UUID : UUID]) -> E? {
+    if var op = obj as? WithProject {
+      op.project = project
+      if let obj = (op as! E).patch(map: &map) {
+        return obj
+      } else {
+        return nil
+      }
+    } else {
+      return obj.patch(map: &map)
+    }
+  }
+  
   public func patch(map: inout [UUID : UUID]) -> Self? {
     var e = self
     if let _ = map[id] {
@@ -32,26 +45,31 @@ public struct ListChange<E : WithID&Patchable,R : Equatable&Codable&RoleEnum> : 
       map[id] = e.id
     }
     if case let .create(a, o) = e.action {
-      if var obj = o.patch(map: &map) {
+      if let obj = safelyPatch(obj: o, map: &map) {
         e.project = map[project]!
-        if var op = obj as? WithProject {
-          
-//          if let oo = o as? WithProject {
-//            print("@@@@ clone event of object with project.  event project: \(project) -> \(e.project) obj \(oo.project) -> \(op.project)")
-//          }
-          op.project = e.project
-          obj = op as! E
-        }
+//        if var op = obj as? WithProject {
+//
+////          if let oo = o as? WithProject {
+////            print("@@@@ clone event of object with project.  event project: \(project) -> \(e.project) obj \(oo.project) -> \(op.project)")
+////          }
+//          op.project = e.project
+//          obj = op as! E
+//        }
         e.action = .create(after: a != nil ? map[a!] : nil, obj: obj)
       } else {
         return nil
       }
     } else if case let .delete(a, o) = e.action {
-      if var obj = o.patch(map: &map) {
-        if var op = obj as? WithProject {
-          op.project = e.project
-          obj = op as! E
+      e.project = map[project]!
+      if let obj = safelyPatch(obj: o, map: &map) {
+        if let op = obj as? WithProject, op.project != e.project {
+          print("#### Danger will robinson !!!!")
         }
+//      if var obj = o.patch(map: &map) {
+//        if var op = obj as? WithProject {
+//          op.project = e.project
+//          obj = op as! E
+//        }
         e.action = .delete(after: a != nil ? map[a!] : nil, obj: obj)
       } else {
         return nil
