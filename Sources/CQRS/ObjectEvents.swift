@@ -25,7 +25,11 @@ public struct SetEvent<E,T : Codable> : Event, Equatable, ObjectEvent, Codable {
       e.id = UUID()
       map[id] = e.id
     }
-    e.project = map[project]!
+    if let pid = map[project] {
+      e.project = pid
+    } else {
+      return nil
+    }
     if map[subject] == nil {
       print("#### No subject found for \(subject) in \(String(describing: self))")
       ErrTracker.log(Err(msg: "Error in cloning project",
@@ -48,7 +52,7 @@ public struct SetEvent<E,T : Codable> : Event, Equatable, ObjectEvent, Codable {
     return e
   }
   
-  public func clone(_ vs:[UUID], map:[UUID:UUID]) -> [UUID] {
+  private func clone(_ vs:[UUID], map:[UUID:UUID]) -> [UUID] {
     var vals = [UUID]()
     for v in vs {
       if let mv = map[v] {
