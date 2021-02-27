@@ -18,8 +18,12 @@ public protocol EventSubscriber {
   func receive(event:Event)
 }
 
+public protocol EventSubscription : Subscription {
+  var eventSubscriber : EventSubscriber? {get}
+}
+
 @available(iOS 14.0, macOS 11.0, *)
-class LogSubscription<S> : Subscription where S : Subscriber, S.Input == Event {
+class LogSubscription<S> : EventSubscription where S : Subscriber, S.Input == Event {
   var id = UUID()
   var subscriber : S?
   var log : EventLog
@@ -31,12 +35,17 @@ class LogSubscription<S> : Subscription where S : Subscriber, S.Input == Event {
     self.log = log
   }
   
+  var eventSubscriber : EventSubscriber? {
+    subscriber as? EventSubscriber
+  }
+  
   func request(_ demand: Subscribers.Demand) {
     var d = demand
     if let sub = subscriber {
       while (d.max == nil || d.max! > 0) && index < log.events.count {
         index += 1
         let event = log.events[index-1]
+//        print("@@@@ Sending event to subscriber \(event)")
         if UndoableEventStore.debugUndo && UndoableEventStore.seenRedo {
 //          print("@@@@ Sending \(index)/\(log.events.count) \(id) to \((sub as? DebugNamed)?.name ?? String(describing: sub)) for event \(String(describing: event))\n\n")
         }
@@ -83,7 +92,7 @@ open class EventLog : Subscriber, Publisher {
           var subs = dsKeyed[k] ?? []
           subs.append(sub)
           dsKeyed[k] = subs
-//          Swift.print("\n\n@@@@ Registring dispatch key subscriber \(String(describing: k)): \(sub) subs: \(subs.count) dsKeyed: \(dsKeyed)\n\n")
+//          Swift.print("\n\n@@@@ Registring dispatch key subscriber \(String(describing: k)): \(sub) subs: \(subs.count) dsKeyed: \(dsKeyed[k])\n\n")
         }
       } else {
         downStreams.append(sub)
@@ -112,8 +121,13 @@ open class EventLog : Subscriber, Publisher {
       // demand is remaining
       for ds in downStreams {
         if ds is EventSubscriber {
+//          Swift.print("@@@@   Dispatching directly to \(type(of: ds)) \(ds)")
           (ds as! EventSubscriber).receive(event: inp)
+        } else if let dss = ds as? EventSubscription, let sub = dss.eventSubscriber {
+//          Swift.print("@@@@  Dispatching directly to subscriber \(type(of: sub))")
+          sub.receive(event: inp)
         } else {
+//          Swift.print("@@@@   Dispatching indirectly to \(type(of: ds)) \(ds)")
           ds.request(Subscribers.Demand.unlimited)
         }
       }
@@ -124,8 +138,13 @@ open class EventLog : Subscriber, Publisher {
 //          Swift.print("@@@@    DsKeys for event \(k): \(dsKeyed[k])")
           for ds in dsKeyed[k] ?? [] {
             if ds is EventSubscriber {
+//              Swift.print("@@@@   Dispatching directly to \(type(of: ds)) \(ds)")
               (ds as! EventSubscriber).receive(event: inp)
+            } else if let dss = ds as? EventSubscription, let sub = dss.eventSubscriber {
+//              Swift.print("@@@@  Dispatching directly to subscriber \(type(of: sub))")
+              sub.receive(event: inp)
             } else {
+//              Swift.print("@@@@   Dispatching indirectly to \(type(of: ds)) \(ds)")
               ds.request(Subscribers.Demand.unlimited)
             }
           }

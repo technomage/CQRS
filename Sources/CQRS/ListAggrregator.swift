@@ -21,7 +21,7 @@ public protocol RoleEnum {
 }
 
 @available(iOS 14.0, macOS 11.0, *)
-open class ListAggregator<E : ListEntry&Patchable, R : Hashable&Codable&RoleEnum> : Subscriber, Identifiable, ObservableObject, Aggregator, DispatchKeys
+open class ListAggregator<E : ListEntry&Patchable, R : Hashable&Codable&RoleEnum> : Subscriber, EventSubscriber, Identifiable, ObservableObject, Aggregator, DispatchKeys
 {
   public typealias Input = Event
   public typealias Failure = Never
@@ -218,6 +218,13 @@ open class ListAggregator<E : ListEntry&Patchable, R : Hashable&Codable&RoleEnum
     self.store?.append(e)
   }
   
+  public func receive(event: Event) {
+    if event is ListChange<E,R> {
+      let le = event as! ListChange<E,R>
+      let _ = self.receive(le)
+    }
+  }
+  
   /// Respond to a new subscription
   open func receive(subscription: Subscription) {
     sub = subscription
@@ -282,7 +289,7 @@ open class ListAggregator<E : ListEntry&Patchable, R : Hashable&Codable&RoleEnum
             list.remove(at: ind)
             listOfIDs.remove(at: ind)
           } else {
-            print("@@@@ DId not find object in list index, resorting to filtering!!!")
+//            print("@@@@ DId not find object in list index, resorting to filtering!!!")
             listOfIDs = listOfIDs.filter{ id in id != input.subject }
             list = list.filter { e in e.id != input.subject }
           }
