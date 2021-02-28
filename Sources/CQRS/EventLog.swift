@@ -16,6 +16,7 @@ public protocol DebugNamed {
 @available(iOS 14.0, macOS 11.0, *)
 public protocol EventSubscriber {
   func receive(event:Event)
+  var id : UUID {get}
 }
 
 public protocol EventSubscription : Subscription {
@@ -90,6 +91,12 @@ open class EventLog : Subscriber, Publisher {
       if keys != nil {
         for k in keys! {
           var subs = dsKeyed[k] ?? []
+          for s in subs {
+            if let su = s as? EventSubscription, let subscr = subscriber as? EventSubscriber,
+               su.eventSubscriber?.id == subscr.id {
+              Swift.print("#### Found subscriber already subscribed")
+            }
+          }
           subs.append(sub)
           dsKeyed[k] = subs
 //          Swift.print("\n\n@@@@ Registring dispatch key subscriber \(String(describing: k)): \(sub) subs: \(subs.count) dsKeyed: \(dsKeyed[k])\n\n")

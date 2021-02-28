@@ -29,23 +29,11 @@ open class ObjectAggregator<E : WithID&Equatable&Identifiable&Patchable, R : Has
   public var store : UndoableEventStore?
   @Published public var childAggregators : [R:Aggregator] = [:]
   
-  public convenience init(store: UndoableEventStore?, subject: UUID) {
-    self.init(subject: subject)
-    self.store = store
-    guard store != nil else {return}
-    store!.log.subscribe(self)
-  }
-  
   public init(subject: UUID) {
     self.subject = subject
   }
   public convenience init(obj: E) {
     self.init(subject: obj.id)
-    self.obj = obj
-  }
-  
-  public convenience init(obj: E, store: UndoableEventStore?) {
-    self.init(store: store, subject: obj.id)
     self.obj = obj
   }
   
@@ -68,7 +56,7 @@ open class ObjectAggregator<E : WithID&Equatable&Identifiable&Patchable, R : Has
     subscription.request(Subscribers.Demand.unlimited)
   }
   
-  public func subscribeToStore() {
+  open func subscribeToStore() {
     guard self.store != nil else {return}
     self.store!.log.subscribe(self)
   }

@@ -28,7 +28,8 @@ open class ListAggregator<E : ListEntry&Patchable, R : Hashable&Codable&RoleEnum
   public typealias LE = ListChange<E,R>
   public typealias ListFilterClosure = (LE) -> Bool
   public typealias ChildAggregatorClosure = (_ store: UndoableEventStore, _ par : ListAggregator<E,R>, _ obj: E) -> ObjectAggregator<E,R>
-  
+
+  public var id = UUID()
   public var role : R?
   public var filter : ListFilterClosure?
   public var parent : UUID?
@@ -258,7 +259,7 @@ open class ListAggregator<E : ListEntry&Patchable, R : Hashable&Codable&RoleEnum
         case .create(let after, let obj) :
 //          NSLog("\n\n@@@@ Inserting object in \(String(describing: name)) \(String(describing: role)) of \(String(describing: parent)) list \(obj) has child config: \(self.childConfig != nil)\n\n")
           let oa = self.childConfig?(store!, self, obj) ??
-            ObjectAggregator<E,R>(obj: obj, store: self.store)
+            ObjectAggregator<E,R>(obj: obj)
           // NSLog("@@@@ Child aggregator has children: \(oa.childAggregators)")
           oa.store = self.store
           self.objAggs[obj.id] = oa
