@@ -187,6 +187,7 @@ public struct ListChange<E : WithID&Patchable,R : Equatable&Codable&RoleEnum> : 
   
   public func encode() throws -> Data {
     let encoder = JSONEncoder()
+    encoder.nonConformingFloatEncodingStrategy = JSONEncoder.NonConformingFloatEncodingStrategy.convertToString(positiveInfinity: "0", negativeInfinity: "0", nan: "0")
     return try encoder.encode(self)
   }
   
