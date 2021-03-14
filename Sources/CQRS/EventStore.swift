@@ -66,23 +66,28 @@ open class UndoableEventStore : EventStore {
   
   public func endUndoBatch() {
     if undoBatch != nil && (undoBatch?.count ?? 0) > 0 {
-//      print("\n\n@@@@ End undo batch with \(undoBatch!.count) events")
+      print("\n\n@@@@ End undo batch with \(undoBatch!.count) events")
       let batch = undoBatch!
       undoBatch = nil
+      undo?.beginUndoGrouping()
       undo?.registerUndo(withTarget: self) { me in
 //        print("\n\n@@@@ Undo a batch of \(batch.count) events\n\n")
         self.startUndoBatch()
+        self.undo?.beginUndoGrouping()
         // Reverse all events in the batch
         for e in batch {
-          if UndoableEventStore.debugUndo && String(describing: e).contains("\"Description\"") && String(describing: e).contains("ListChange") {
-//            print("\n\n@@@@ \(e.undoType.rawValue) \(String(describing:e))\n\n")
-          }
+//          if UndoableEventStore.debugUndo && String(describing: e).contains("\"Description\"") && String(describing: e).contains("ListChange") {
+            print("\n@@@@ \(e.undoType.rawValue) \(String(describing:e))\n\n")
+//          }
           let re = self.reverseEvent(e)
+          print("\n@@@@ reversed to \(e.undoType.rawValue) \(String(describing:re))\n\n")
           self._append(re)
         }
+        self.undo?.endUndoGrouping()
         self.endUndoBatch()
-//        print("\n\n@@@@ End of batch undo\n\n")
+        print("\n\n@@@@ End of batch undo\n\n")
       }
+      undo?.endUndoGrouping()
       undoBatch = nil
     }
   }
