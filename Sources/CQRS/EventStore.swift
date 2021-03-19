@@ -52,27 +52,27 @@ open class EventStore : ObservableObject {
 open class UndoableEventStore : EventStore {
   public var undo : UndoManager?
   public var undoBatch : [Event]? = nil // Events batched together because undo manager seems to have a limit of 100 per group
+  public var batchStack = Stack<String>()
   
   static public var debugUndo = false
   static public var seenRedo : Bool = false // in conjunction with debugUndo
   
-  public func startUndoBatch() {
-    if undoBatch == nil {
-      undoBatch = []
-    } else {
-      print("\n\n#### Start undo batch while in the middle of a batch!!!!\n\n")
-    }
+  public func startUndoBatch(_ id:String) {
+    undoBatch = []
+  batchStack.push(id)
   }
   
-  public func endUndoBatch() {
-    if undoBatch != nil && (undoBatch?.count ?? 0) > 0 {
+  public func endUndoBatch(_ batchId: String) {
+    if undoBatch != nil && (undoBatch?.count ?? 0) > 0,
+       let id = batchStack.pop(), batchId == id {
+      guard batchStack.count == 0 else {return}
       print("\n\n@@@@ End undo batch with \(undoBatch!.count) events")
       let batch = undoBatch!
       undoBatch = nil
       undo?.beginUndoGrouping()
       undo?.registerUndo(withTarget: self) { me in
 //        print("\n\n@@@@ Undo a batch of \(batch.count) events\n\n")
-        self.startUndoBatch()
+        self.startUndoBatch("Undo of batch")
         self.undo?.beginUndoGrouping()
         // Reverse all events in the batch
         for e in batch {
@@ -84,11 +84,15 @@ open class UndoableEventStore : EventStore {
           self._append(re)
         }
         self.undo?.endUndoGrouping()
-        self.endUndoBatch()
+        self.endUndoBatch("Undo of batch")
         print("\n\n@@@@ End of batch undo\n\n")
       }
       undo?.endUndoGrouping()
       undoBatch = nil
+    } else {
+      print("#### un-nested undo batches")
+      ErrTracker.log(Err(msg: "Coding Error",
+                         details: "Undo Batches not properly nested \(batchStack)"))
     }
   }
 
