@@ -90,9 +90,9 @@ open class UndoableEventStore : EventStore {
       undo?.endUndoGrouping()
       undoBatch = nil
     } else {
-      print("#### un-nested undo batches")
+      print("#### Undo Batch nesting error.  \(batchId), \(batchStack)")
       ErrTracker.log(Err(msg: "Coding Error",
-                         details: "Undo Batches not properly nested \(batchStack)"))
+                         details: "Undo Batches not properly nested \(batchId), \(batchStack)"))
     }
   }
 
