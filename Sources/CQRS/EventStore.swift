@@ -59,14 +59,15 @@ open class UndoableEventStore : EventStore {
   
   public func startUndoBatch(_ id:String) {
     undoBatch = []
-  batchStack.push(id)
+    batchStack.push(id)
+    perfStart("Start endo batch \(id)")
   }
   
   public func endUndoBatch(_ batchId: String) {
     if undoBatch != nil && (undoBatch?.count ?? 0) > 0,
        let id = batchStack.pop(), batchId == id {
       guard batchStack.count == 0 else {return}
-      print("\n\n@@@@ End undo batch with \(undoBatch!.count) events")
+      perfEnd("End undo batch with \(undoBatch!.count) events: \(batchId)")
       let batch = undoBatch!
       undoBatch = nil
       undo?.beginUndoGrouping()
@@ -85,7 +86,7 @@ open class UndoableEventStore : EventStore {
         }
         self.undo?.endUndoGrouping()
         self.endUndoBatch("Undo of batch")
-        print("\n\n@@@@ End of batch undo\n\n")
+        print("@@@@ End of batch undo")
       }
       undo?.endUndoGrouping()
       undoBatch = nil

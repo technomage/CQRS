@@ -84,6 +84,7 @@ open class EventLog : Subscriber, Publisher {
   }
   
   public func receive<S>(subscriber: S) where S : Subscriber, EventLog.Failure == S.Failure, EventLog.Output == S.Input {
+    perfStart("EventLog received event subscriber")
 //    NSLog("@@@@ Subscription to log by \(subscriber) with \(downStreams.count) subscriptions current")
     let sub : LogSubscription<S> = LogSubscription<S>(subscriber: subscriber, log: self)
     if subscriber is DispatchKeys {
@@ -108,6 +109,7 @@ open class EventLog : Subscriber, Publisher {
       downStreams.append(sub)
     }
     subscriber.receive(subscription: sub)
+    perfEnd("EventLog received event subscriber")
   }
   
   public func receive(subscription: Subscription) {
@@ -116,6 +118,7 @@ open class EventLog : Subscriber, Publisher {
   }
   
   public func receive(_ input: Event?) -> Subscribers.Demand {
+    perfStart("EventLog received event")
 //    Swift.print("\n\n\n@@@@ Dispatching event \(input) with dsKeyed: \(dsKeyed)\n\n")
     if let inp = input {
       var evt = inp
@@ -158,6 +161,7 @@ open class EventLog : Subscriber, Publisher {
         }
       }
     }
+    perfEnd("EventLog received event")
     return Subscribers.Demand.unlimited;
   }
   

@@ -376,6 +376,7 @@ public class CloudKitSync : Subscriber {
       // Process queued events from this app
       if self.queue.count > 0 {
         // Save queued events to database
+        perfStart("Save batch to iCloud with \(self.queue.count) events")
 //        NSLog("@@@@ Processing \(self.queue.count) queued events")
         let recs = self.queue
         self.queue = [:]
@@ -397,6 +398,7 @@ public class CloudKitSync : Subscriber {
                              details: "Error in saving queued CloudKit events: \(String(describing: error))"))
           self.status = .error
         }
+        perfEnd("Save batch to iCloud")
       }
     }
   }
@@ -532,11 +534,15 @@ public class CloudKitSync : Subscriber {
                            details: "\(String(describing: error))"))
         self.status = .error
         return}
-//      print("@@@@ Saved \(events.count) events")
-      for e in events {
-        self.writtenEvents.insert(e.id) // TODO: occasional crash, probably threading
+      perfMsg("Saved \(events.count) events")
+      if events.count > 0 {
+        for e in events {
+          self.writtenEvents.insert(e.id) // TODO: occasional crash, probably threading
+        }
+        if self.writeCount != self.writtenEvents.count {
+          self.writeCount = self.writtenEvents.count
+        }
       }
-      self.writeCount = self.writtenEvents.count
     }
     privateDB.add(op)
   }
@@ -561,7 +567,9 @@ public class CloudKitSync : Subscriber {
         self.status = .error
         return}
       self.writtenEvents.insert(event.id)
-      self.writeCount = self.writtenEvents.count
+      if self.writeCount != self.writtenEvents.count {
+        self.writeCount = self.writtenEvents.count
+      }
     }
     privateDB.add(op)
   }
