@@ -23,17 +23,64 @@ public protocol WithProject {
 @available(iOS 14.0, macOS 11.0, *)
 public struct ListChange<E : WithID&Patchable,R : Equatable&Codable&RoleEnum> : Equatable, ListEvent, Codable, ListEventWithParent {
   
+  public func preEncode() -> NSData? {
+    switch action {
+      case .create(after:_, obj: let obj):
+        if let o = obj as? WithCustomCoding {
+          return o.preEncode()
+        } else {
+          return nil
+        }
+      case .delete(after:_, obj: let obj):
+        if let o = obj as? WithCustomCoding {
+          return o.preEncode()
+        } else {
+          return nil
+        }
+      case .move:
+        return nil
+    }
+  }
+  
+  public func postDecode(_ data: NSData) -> Self {
+    switch action {
+      case .create(after: let a, obj: let obj):
+        if let o = obj as? WithCustomCoding {
+          let ob = o.postDecode(data) as! E
+          var ret = self
+          ret.action = .create(after: a, obj: ob)
+          return ret
+        } else {
+          return self
+        }
+      case .delete(after: let a, obj: let obj):
+        if let o = obj as? WithCustomCoding {
+          let ob = o.postDecode(data) as! E
+          var ret = self
+          ret.action = .delete(after: a, obj: ob)
+          return ret
+        } else {
+          return self
+        }
+      case .move:
+        return self
+    }
+  }
+  
+  
   private func safelyPatch(obj: E, map: inout [UUID : UUID]) -> E? {
+    var o2 : E? = obj
     if var op = obj as? WithProject {
       op.project = project
       if let obj = (op as! E).patch(map: &map) {
-        return obj
+        o2 = obj
       } else {
-        return nil
+        o2 = nil
       }
     } else {
-      return obj.patch(map: &map)
+      o2 = obj.patch(map: &map)
     }
+    return o2
   }
   
   public func patch(map: inout [UUID : UUID]) -> Self? {
@@ -47,14 +94,6 @@ public struct ListChange<E : WithID&Patchable,R : Equatable&Codable&RoleEnum> : 
     if case let .create(a, o) = e.action {
       if let obj = safelyPatch(obj: o, map: &map) {
         e.project = map[project]!
-//        if var op = obj as? WithProject {
-//
-////          if let oo = o as? WithProject {
-////            print("@@@@ clone event of object with project.  event project: \(project) -> \(e.project) obj \(oo.project) -> \(op.project)")
-////          }
-//          op.project = e.project
-//          obj = op as! E
-//        }
         e.action = .create(after: a != nil ? map[a!] : nil, obj: obj)
       } else {
         return nil

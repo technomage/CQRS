@@ -17,6 +17,24 @@ public protocol ObjectEvent : Event, DispatchKeys {
 @available(iOS 14.0, macOS 11.0, *)
 public struct SetEvent<E,T : Codable> : Event, Equatable, ObjectEvent, Codable {
   
+  public func preEncode() -> NSData? {
+    if let v = value as? WithCustomCoding {
+      return v.preEncode()
+    } else {
+      return nil
+    }
+  }
+  
+  public func postDecode(_ data: NSData) -> Self {
+    if let v = value as? WithCustomCoding {
+      var e2 = self
+      e2.value = v.postDecode(data) as! T
+      return e2
+    } else {
+      return self
+    }
+  }
+  
   public func patch(map: inout [UUID : UUID]) -> SetEvent<E, T>? {
     var e = self
     if let _ = map[id] {

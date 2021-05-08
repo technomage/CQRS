@@ -17,6 +17,7 @@ open class EventStore : ObservableObject {
   var seq = Seq()
   @Published public var event : Event? = nil
   public var log : EventLog
+  public var fileLogger : EventToFileLogger? = nil
   
   public init() {
     let l = EventLog()
@@ -33,6 +34,36 @@ open class EventStore : ObservableObject {
       self.seq = self.seq.next(Seq.localID!)
     }
     return self.seq
+  }
+  
+  /// MARKER: Attachment support
+  
+  public func saveAttachmentContent(project: UUID, id: UUID, file: NSData) throws {
+    try fileLogger?.saveAttachmentContent(project: project, id: id, file: file)
+  }
+  
+  public func saveAttachmentContent(project: UUID, id: UUID, image: NSData) throws {
+    try fileLogger?.saveAttachmentContent(project: project, id: id, image: image)
+  }
+  
+  public func saveAttachmentContent(project: UUID, id: UUID, video: NSData) throws {
+    try fileLogger?.saveAttachmentContent(project: project, id: id, video: video)
+  }
+  
+  public func saveAttachmentContent(project: UUID, name: String, data: Data) throws {
+    try fileLogger?.saveAttachmentContent(project: project, name: name, data: data)
+  }
+  
+  public func readFileAttachmentContent(project: UUID, id: UUID) throws -> Data? {
+    try fileLogger?.readFileAttachmentContent(project: project, id: id)
+  }
+  
+  public func readImageAttachmentContent(project: UUID, id: UUID) throws -> Data? {
+    try fileLogger?.readImageAttachmentContent(project: project, id: id)
+  }
+  
+  public func readVideoAttachmentContent(project: UUID, id: UUID) throws -> Data? {
+    try fileLogger?.readVideoAttachmentContent(project: project, id: id)
   }
   
   public func append(_ event : Event) {
@@ -161,7 +192,7 @@ open class UndoableEventStore : EventStore {
 public typealias Events = [Event]
 
 @available(iOS 14.0, macOS 11.0, *)
-public protocol Event : Codable,Patchable {
+public protocol Event : Codable, Patchable, WithCustomCoding {
   var seq : Seq? { get set }
   var id : UUID { get set }
   var project : UUID { get set }
@@ -172,6 +203,11 @@ public protocol Event : Codable,Patchable {
   func reverse() -> Event
   func encode() throws -> Data
   static func decode(from data: Data) throws -> Event
+}
+
+public protocol WithCustomCoding {
+  func preEncode() -> NSData?
+  func postDecode(_ data: NSData) -> Self
 }
 
 public protocol Named {

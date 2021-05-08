@@ -33,6 +33,8 @@ public enum ICloudSyncMode : String, CaseIterable, Identifiable {
 public class CloudKitSync : Subscriber {
   public typealias Input = Event
   public typealias Failure = Never
+  
+  public static var debugCloud : Bool = false
 
   public static var debugFilter : (_:Event) -> Bool = {e in false}
   
@@ -65,19 +67,11 @@ public class CloudKitSync : Subscriber {
   private var dispatch = DispatchQueue(label: "com.technomage.icloudSync", qos: .userInitiated, attributes: DispatchQueue.Attributes(), autoreleaseFrequency: .workItem, target: nil)
   
   public init(zoneName : String) {
-//    NSLog("\n\n@@@@ Creating IcloudKitSync")
-//    print("\n\n@@@@ Creating ICloudKitSync")
     self.zoneName = zoneName
-    // default init
+    //
     container = CKContainer.default()
     privateDB = container.privateCloudDatabase
     sharedDB = container.sharedCloudDatabase
-//    self.writeCancel = self.$writtenCount.receive(on: RunLoop.main).sink { v in
-//      print("@@@@ ///////// Writen Count: \(v)")
-//    }
-//    self.writeCancel = objectWillChange.receive(on: RunLoop.main).sink {
-//      print("@@@@ ///////// ICloud sync will change")
-//    }
   }
   
   func ensureZoneExists(completion: @escaping () -> Void) {
@@ -86,14 +80,17 @@ public class CloudKitSync : Subscriber {
     op.queuePriority = .veryHigh
     op.fetchRecordZonesCompletionBlock = { zones, error in
       if zones?.keys.count ?? 0 > 0 {
-//        NSLog("@@@@ Received data on \(zones?.count ?? 0) zones \(String(describing: zones?.keys))")
-//        print("@@@@ Received data on \(zones?.count ?? 0) zones \(String(describing: zones?.keys))")
+        if CloudKitSync.debugCloud {
+          print("@@@@ Received data on \(zones?.count ?? 0) zones \(String(describing: zones?.keys))")
+        }
         self.zone = zoneID
         self.status = .zoneExists
         completion()
         self.saveQueuedEvents()
       } else {
-//        NSLog("@@@@ Custom zone not found, creating it")
+        if CloudKitSync.debugCloud {
+          NSLog("@@@@ Custom zone not found, creating it")
+        }
         self.status = .creatingZone
         let createZoneGroup = DispatchGroup()
         createZoneGroup.enter()
@@ -102,8 +99,9 @@ public class CloudKitSync : Subscriber {
         let createZoneOperation = CKModifyRecordZonesOperation(recordZonesToSave: [customZone], recordZoneIDsToDelete: [] )
         createZoneOperation.modifyRecordZonesCompletionBlock = { (saved, deleted, error) in
           if (error == nil) {
-//            NSLog("@@@@ Custom zone created \(zoneID)")
-//            print("@@@@ Custom zone created \(zoneID)")
+            if CloudKitSync.debugCloud {
+              print("@@@@ Custom zone created \(zoneID)")
+            }
             self.zone = zoneID
             self.status = .zoneExists
             completion()
@@ -142,13 +140,17 @@ public class CloudKitSync : Subscriber {
     op.queuePriority = .veryHigh
     op.recordFetchedBlock = { rec in
       let p = UUID(uuidString: rec.recordID.recordName)
-//      print("@@@@ Found root for \(p!.uuidString)")
+      if CloudKitSync.debugCloud {
+        print("@@@@ Found root for \(p!.uuidString)")
+      }
       self.projectRecords[p!] = rec.recordID
       callback(p!)
     }
     op.queryCompletionBlock = { recs, error in
       if error == nil && recs != nil {
-//        print("@@@@ Getting next batch of events")
+        if CloudKitSync.debugCloud {
+          print("@@@@ Getting next batch of events")
+        }
         let op = CKQueryOperation(cursor: recs!)
         self.fetchRoots(op, callback: callback)
       } else if error != nil {
@@ -157,7 +159,9 @@ public class CloudKitSync : Subscriber {
         self.status = .error
         print("#### Error in fetching roots from zone \(String(describing: self.zone)): \(String(describing: error))")
       }
-//      NSLog("@@@@ loaded \(self.projectRecords.count) roots")
+      if CloudKitSync.debugCloud {
+        NSLog("@@@@ loaded \(self.projectRecords.count) roots")
+      }
     }
     self.privateDB.add(op)
   }
@@ -165,7 +169,13 @@ public class CloudKitSync : Subscriber {
   /// Load records from iCloud for the provided project
   public func loadRecords(forProject project: UUID, callback: @escaping () -> Void) {
     if self.zone == nil {
+      if CloudKitSync.debugCloud {
+        print("@@@@ Queing up load requests until zone available")
+      }
       dispatch.asyncAfter(deadline: .now() + 1.0) {
+        if CloudKitSync.debugCloud {
+          print("@@@@ Loading events from icloud")
+        }
         self.loadRecords(forProject: project, callback: callback)
       }
     } else {
@@ -181,6 +191,9 @@ public class CloudKitSync : Subscriber {
   public func loadProjectRecords(forProject project: UUID, callback: @escaping () -> Void) {
     if self.zone == nil {
       dispatch.asyncAfter(deadline: .now() + 1.0) {
+        if CloudKitSync.debugCloud {
+          print("@@@@ Loading project records from icloud")
+        }
         self.loadRecords(forProject: project, callback: callback)
       }
     } else {
@@ -199,8 +212,7 @@ public class CloudKitSync : Subscriber {
     op.recordFetchedBlock = { rec in
       let eventId = UUID(uuidString: rec[EventSchema.eventID] as! String)!
       if !self.events.contains(eventId) && !(self.fileLogger?.savedEvents.contains(eventId) ?? false) {
-//        NSLog("@@@@ ---- Cloud loading event \(self.events.count)")
-//        print("@@@@ -÷--- Cloud loading event \(self.events.count) \(eventId) \(rec[EventSchema.seq] as! String) known events: \(self.events)")
+//          print("@@@@ -÷--- Cloud loading event \(self.events.count) \(eventId) \(String(describing: rec[EventSchema.seq])) known events: \(self.events.count)")
         self.events.insert(eventId)
         // deserialize event from icloud and add to store if not previously seen by it
         let typeName = rec[EventSchema.eventType] as! String
@@ -222,10 +234,16 @@ public class CloudKitSync : Subscriber {
         do {
 //          print("@@@@ \(typeName) event data \(String(data: data!, encoding: .utf8) ?? "<none>")")
           let event : Event = try et.decode(from: data!)
+          if CloudKitSync.debugCloud {
+            self.log(event, as: "Read")
+          }
           if event.id != eventId {
             print("########## Event read from icloud without proper id #############")
             ErrTracker.log(Err(msg: "ICloud Coding Error",
                                details: "ICloud event without proper ID"))
+          }
+          if CloudKitSync.debugCloud {
+            print("@@@@ Loaded \(self.pendingReads.count) so far")
           }
           self.pendingReads.append(event)
         } catch {
@@ -235,10 +253,17 @@ public class CloudKitSync : Subscriber {
                              details: "Error loading event \(typeName): \(error)"))
           self.status = .error
         }
+      } else {
+        if CloudKitSync.debugCloud {
+          print("@@@@ Loaded event is a duplicate \(eventId)")
+        }
       }
     }
     op.queryCompletionBlock = { recs, error in
       if error == nil && recs != nil {
+        if CloudKitSync.debugCloud {
+          print("@@@@ Query complete, fetching next batch")
+        }
         let op = CKQueryOperation(cursor: recs!)
         self.fetchRecords(op, callback: callback)
       } else if error != nil {
@@ -247,6 +272,9 @@ public class CloudKitSync : Subscriber {
                            details: "Error in fetching CloudKit records from zone: \(String(describing: self.zone)): \(String(describing: error))"))
         self.status = .error
       } else {
+        if CloudKitSync.debugCloud {
+          print("@@@@ Query complete, sort and then loading \(self.pendingReads.count) events in order\n")
+        }
         let sorted = self.pendingReads.sorted { (a,b) -> Bool in
           return a.seq!.sortableString < b.seq!.sortableString
         }
@@ -523,18 +551,26 @@ public class CloudKitSync : Subscriber {
   }
   
   func saveBatch( recs: [CKRecord], events: [Event]) {
-//    NSLog("@@@@ Saving batch of \(recs.count) records")
+    if CloudKitSync.debugCloud {
+      print("@@@@ Saving batch of \(recs.count) records")
+      for e in events {
+        log(e, as: "Write")
+      }
+    }
     let op = CKModifyRecordsOperation()
     op.queuePriority = .veryHigh
     op.recordsToSave = recs
     op.modifyRecordsCompletionBlock = { _, _, error in
       guard error == nil else {
-        print("#### Error in saving event \(String(describing: error))")
+        print("#### Error in saving batch \(String(describing: error))")
         ErrTracker.log(Err(msg: "Error in saving data to iCloud",
                            details: "\(String(describing: error))"))
         self.status = .error
         return}
       perfMsg("Saved \(events.count) events")
+      if CloudKitSync.debugCloud {
+        print("@@@@ Saved \(events.count) to iCloud")
+      }
       if events.count > 0 {
         for e in events {
           self.writtenEvents.insert(e.id) // TODO: occasional crash, probably threading
@@ -583,5 +619,12 @@ public class CloudKitSync : Subscriber {
   /// Perform a manual sync
   public func syncNow() {
     
+  }
+  
+  /// Log event for debugging
+  public func log(_ event: Event, as typ: String) {
+    if CloudKitSync.debugCloud {
+      print("@@@@ \(typ) \(event.id.uuidString)")
+    }
   }
 }

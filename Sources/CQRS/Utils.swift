@@ -25,7 +25,20 @@ public class Utils {
     }
   }
   
+  public static func resetTemp() {
+    let temp = FileManager.default.temporaryDirectory
+    let paths = FileManager.default.enumerator(atPath: temp.path)
+    if paths != nil {
+      for p in paths! {
+        let path = p as! String
+        let fullPath = temp.appendingPathComponent(path)
+        try? FileManager.default.removeItem(at: fullPath)
+      }
+    }
+  }
+  
   public static func resetICloud(zoneName : String, callback: @escaping ([CKRecordZone]?, [CKRecordZone.ID]?, Error?) -> Void) {
+    // TODO: test for icloud reachable
     print("\n\n@@@@ Resetting iCloud\n\n")
     let container = CKContainer.default()
     let privateDB = container.privateCloudDatabase
