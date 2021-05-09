@@ -34,6 +34,8 @@ public class CloudKitSync : Subscriber {
   public typealias Input = Event
   public typealias Failure = Never
   
+  public static var enableCloud = false
+  
   public static var debugCloud : Bool = false
 
   public static var debugFilter : (_:Event) -> Bool = {e in false}
