@@ -342,11 +342,13 @@ public class CloudKitSync : Subscriber {
               }
               self.ensureZoneExists {
                 if self.status != .error {
+                  print("Completed discovring user")
                   self.status = .connected
                 }
                 self.loadProjectRoots() { p in
                   // Load project defining events
                   self.loadProjectRecords(forProject: p) {
+                    print("Projects loaded")
                   }
                 }
                 self.userRecordID = userRecordID

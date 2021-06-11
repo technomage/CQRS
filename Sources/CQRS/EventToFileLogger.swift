@@ -73,6 +73,41 @@ open class EventToFileLogger : Publisher {
     }
   }
   
+  /// MARKER: Backups
+  
+  /// Perform a full backup of all internal projects
+  public func fullBackup(projectNames: [UUID:String]) throws {
+    guard let docPath = docDirectory?.path else {return}
+    guard let iCloudDocs = FileManager.default.url(forUbiquityContainerIdentifier: nil)?.appendingPathComponent("Documents") else {return}
+    let tmp = FileWrapper(regularFileWithContents: "Testing".data(using: .utf8)!)
+    try tmp.write(to: iCloudDocs.appendingPathComponent("Test.txt"), originalContentsURL: nil)
+    let data = "No File Wrapper".data(using: .utf8)
+    try data?.write(to: iCloudDocs.appendingPathComponent("testNoFW.txt"))
+    let paths = try FileManager.default.contentsOfDirectory(atPath: docPath)
+    for p in paths {
+      Swift.print("@@@@ Path: \(p)")
+      if p.hasSuffix(".ladi") {
+        if let docURL = docDirectory?.appendingPathComponent(p) {
+          let efw = try FileWrapper(url: docURL.appendingPathComponent("events"),
+                                    options: .immediate)
+          let fw = FileWrapper(directoryWithFileWrappers: ["events":efw])
+          let proj = p.replacingOccurrences(of: ".ladi", with: "")
+          let pid = UUID(uuidString: proj)
+          let projectName = pid != nil ? projectNames[pid!] ?? proj : proj
+          Swift.print("@@@@ project name \(projectName)")
+          let bk = iCloudDocs.appendingPathComponent(projectName+".ladi")
+          Swift.print("@@@@ backup path \(bk)")
+          try fw.write(to: bk,
+                       options: [.withNameUpdating,.atomic],
+                       originalContentsURL: nil)
+        }
+      }
+    }
+    Swift.print("")
+  }
+  
+  /// MARKER: Attachment Support
+  
   public func saveAttachmentContent(project: UUID, id: UUID, file: NSData) throws {
     try saveAttachmentContent(project: project, id: id, data: file, ext: nil)
   }

@@ -36,6 +36,13 @@ open class EventStore : ObservableObject {
     return self.seq
   }
   
+  /// MARKER: Backups
+  
+  /// Perform a fulll backup of all internal projects
+  public func fullBackup(projectNames: [UUID:String]) throws {
+    try fileLogger?.fullBackup(projectNames: projectNames)
+  }
+  
   /// MARKER: Attachment support
   
   public func saveAttachmentContent(project: UUID, id: UUID, file: NSData) throws {
