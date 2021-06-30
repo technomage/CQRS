@@ -78,6 +78,7 @@ open class EventLog : Subscriber, Publisher {
   var dsKeyed : [String:[Subscription]] = [:]
   var upStream : Subscription?
   public var events : Events = []
+  public var eventIDs = Set<UUID>()
   
   public init() {
 //    Swift.print("@@@@ Creating EventLog")
@@ -125,7 +126,9 @@ open class EventLog : Subscriber, Publisher {
       if evt.status == .new {
         evt.status = .queued
       }
+      guard !eventIDs.contains(evt.id) else {return Subscribers.Demand.unlimited}
       events.append(evt)
+      eventIDs.insert(evt.id)
 //      Swift.print("@@@@ Event \(inp.id.uuidString) received by log")
       // The following feels like a kludge, since we do not know how much
       // demand is remaining

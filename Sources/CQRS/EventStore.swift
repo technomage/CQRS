@@ -96,13 +96,17 @@ open class UndoableEventStore : EventStore {
   static public var seenRedo : Bool = false // in conjunction with debugUndo
   
   public func startUndoBatch(_ id:String) {
-    undoBatch = []
+    if undoBatch == nil {
+      undoBatch = []
+    }
     batchStack.push(id)
     perfStart("Start endo batch \(id)")
   }
   
   public func endUndoBatch(_ batchId: String) {
-    if undoBatch != nil && (undoBatch?.count ?? 0) > 0,
+    if batchStack.count > 1 && batchStack.peek() == batchId {
+      let _ = batchStack.pop()
+    } else if undoBatch != nil,
        let id = batchStack.pop(), batchId == id {
       guard batchStack.count == 0 else {return}
       perfEnd("End undo batch with \(undoBatch!.count) events: \(batchId)")
