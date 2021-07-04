@@ -20,8 +20,34 @@ public protocol WithProject {
   var project:UUID {get set}
 }
 
+public protocol ListEventSavable {
+  func prepareForSaveAs(project: UUID, fromProject: UUID) -> Event
+}
+
 @available(iOS 14.0, macOS 11.0, *)
-public struct ListChange<E : WithID&Patchable,R : Equatable&Codable&RoleEnum> : Equatable, ListEvent, Codable, ListEventWithParent {
+public struct ListChange<E : WithID&Patchable,R : Equatable&Codable&RoleEnum> : Equatable, ListEvent, Codable, ListEventWithParent, ListEventSavable {
+
+  func patchProject(obj: E, project: UUID, fromProject: UUID) -> E {
+    var o = obj
+    if o.id == fromProject {
+      o.id = project
+    }
+    if var o2 = o as? WithProject {
+      o2.project = project
+      return o2 as! E
+    } else {
+      return o
+    }
+  }
+  public func prepareForSaveAs(project: UUID, fromProject: UUID) -> Event {
+    var e = self
+    if case let .create(after, obj) = action {
+      e.action = .create(after: after, obj: patchProject(obj: obj, project: project, fromProject: fromProject))
+    } else if case let .delete(after, obj) = action {
+      e.action = .create(after: after, obj: patchProject(obj: obj, project: project, fromProject: fromProject))
+    }
+    return e
+  }
   
   public func preEncode() -> NSData? {
     switch action {

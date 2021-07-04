@@ -126,7 +126,9 @@ open class EventLog : Subscriber, Publisher {
       if evt.status == .new {
         evt.status = .queued
       }
-      guard !eventIDs.contains(evt.id) else {return Subscribers.Demand.unlimited}
+      guard !eventIDs.contains(evt.id) else {
+        perfEnd("EventLog received event")
+        return Subscribers.Demand.unlimited}
       events.append(evt)
       eventIDs.insert(evt.id)
 //      Swift.print("@@@@ Event \(inp.id.uuidString) received by log")

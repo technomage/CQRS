@@ -8,7 +8,7 @@
 import Foundation
 
 private var count : Int = 0
-private let enabled = false
+private let enabled = true
 
 public func perfStart(_ msg: String) {
   guard enabled else {return}

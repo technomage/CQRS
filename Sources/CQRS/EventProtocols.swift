@@ -12,7 +12,7 @@ public protocol ListEventWithParent : Event {
 }
 
 public protocol WithID : Codable, Identifiable where ID == UUID {
-  var id : ID { get }
+  var id : ID { get set }
 }
 
 public protocol Patchable {

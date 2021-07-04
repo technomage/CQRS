@@ -106,6 +106,7 @@ open class UndoableEventStore : EventStore {
   public func endUndoBatch(_ batchId: String) {
     if batchStack.count > 1 && batchStack.peek() == batchId {
       let _ = batchStack.pop()
+      perfEnd("End undo batch with \(undoBatch!.count) events: \(batchId)")
     } else if undoBatch != nil,
        let id = batchStack.pop(), batchId == id {
       guard batchStack.count == 0 else {return}
@@ -133,6 +134,7 @@ open class UndoableEventStore : EventStore {
       undo?.endUndoGrouping()
       undoBatch = nil
     } else {
+      perfEnd("End undo batch with \(batchId) error stack: \(batchStack)")
       print("#### Undo Batch nesting error.  \(batchId), \(batchStack)")
       ErrTracker.log(Err(msg: "Coding Error",
                          details: "Undo Batches not properly nested \(batchId), \(batchStack)"))
