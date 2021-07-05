@@ -79,10 +79,10 @@ open class EventToFileLogger : Publisher {
   public func fullBackup(projectNames: [UUID:String]) throws {
     guard let docPath = docDirectory?.path else {return}
     guard let iCloudDocs = FileManager.default.url(forUbiquityContainerIdentifier: nil)?.appendingPathComponent("Documents") else {return}
-    let tmp = FileWrapper(regularFileWithContents: "Testing".data(using: .utf8)!)
-    try tmp.write(to: iCloudDocs.appendingPathComponent("Test.txt"), originalContentsURL: nil)
-    let data = "No File Wrapper".data(using: .utf8)
-    try data?.write(to: iCloudDocs.appendingPathComponent("testNoFW.txt"))
+//    let tmp = FileWrapper(regularFileWithContents: "Testing".data(using: .utf8)!)
+//    try tmp.write(to: iCloudDocs.appendingPathComponent("Test.txt"), originalContentsURL: nil)
+//    let data = "No File Wrapper".data(using: .utf8)
+//    try data?.write(to: iCloudDocs.appendingPathComponent("testNoFW.txt"))
     let paths = try FileManager.default.contentsOfDirectory(atPath: docPath)
     for p in paths {
       Swift.print("@@@@ Path: \(p)")
@@ -171,13 +171,17 @@ open class EventToFileLogger : Publisher {
   
   public func readAttachmentContent(project: UUID, id: UUID, ext: String?) throws -> Data? {
     let extra = ext == nil ? "" : ".\(ext!)"
-    let path = self.docDirectory!
+    let proj_path = self.docDirectory!
       .appendingPathComponent(project.uuidString+".ladi")
+    let path = proj_path
       .appendingPathComponent(id.uuidString+extra)
     if FileManager.default.fileExists(atPath: path.path) {
       let file = FileHandle(forReadingAtPath: path.path)
       return try file?.readToEnd()
     } else {
+      let paths = FileManager.default.subpaths(atPath: proj_path.path)
+      Swift.print("@@@@ \(FileManager.default.subpaths(atPath: docDirectory!.path))")
+      ErrTracker.log(Err(msg: "Failed to find attachment content for \(project.uuidString) \(id.uuidString)\(extra)", details: "paths found: \(String(describing: paths))"))
       return nil
     }
   }
