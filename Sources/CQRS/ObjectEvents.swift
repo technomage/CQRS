@@ -11,7 +11,7 @@ import Combine
 
 @available(iOS 14.0, macOS 11.0, *)
 public protocol ObjectEvent : Event, DispatchKeys {
-  func apply<ET>(to obj : ET) -> ET
+  func apply<ET>(to obj : ET, store: EventStore) -> ET
 }
 
 @available(iOS 14.0, macOS 11.0, *)
@@ -118,9 +118,9 @@ public struct SetEvent<E,T : Codable> : Event, Equatable, ObjectEvent, Codable {
     return e
   }
   
-  public func apply<ET>(to obj : ET) -> ET {
+  public func apply<ET>(to obj : ET, store: EventStore) -> ET {
     if let o = obj as? E {
-      if let result = self.applyPath(to: o, path: self.path) as? ET {
+      if let result = self.applyPath(to: o, path: self.path, store: store) as? ET {
         return result
       } else {
         return obj
@@ -130,7 +130,7 @@ public struct SetEvent<E,T : Codable> : Event, Equatable, ObjectEvent, Codable {
     }
   }
   
-  public func applyPath(to obj : E, path: WritableKeyPath<E,T>) -> E {
+  public func applyPath(to obj : E, path: WritableKeyPath<E,T>, store: EventStore) -> E {
     var o : E = obj
     o[keyPath: path] = value
 //    print("@@@@ Apply keypath to \(obj) -> \(o) value: \(value)")

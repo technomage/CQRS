@@ -89,7 +89,9 @@ open class ObjectAggregator<E : WithID&Equatable&Identifiable&Patchable, R : Has
         perfStart("Applying object event \(event) in \(self)")
         self.events.append(evt)
         self.eventIds.insert(evt.id)
-        self.obj = evt.apply(to: o)
+        if let st = store {
+          self.obj = evt.apply(to: o, store: st)
+        }
         perfEnd("applying event")
       }
     }
